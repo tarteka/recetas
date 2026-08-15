@@ -19,6 +19,7 @@ export interface RecetaResumen extends RaRecord<number> {
   raciones: number | null;
   tiempo_total_min: number | null;
   creado_en: string;
+  archivada_en: string | null;
   categorias: CategoriaReceta[];
   etiquetas: EtiquetaReceta[];
 }
@@ -28,6 +29,7 @@ export interface RecetaResumenAdmin extends RaRecord<number> {
   titulo: string;
   imagen_url: string | null;
   creado_en: string;
+  archivada_en: string | null;
   categorias: string[];
   etiquetas: string[];
 }

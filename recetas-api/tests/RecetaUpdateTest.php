@@ -87,5 +87,19 @@ try {
     comprobar(count($recetaTrasError['pasos'] ?? []) === 2, 'El rollback dejó relaciones incompletas');
 }
 
+comprobar($repository->cambiarArchivado($id, true), 'No archivó la receta');
+comprobar($repository->obtenerPorId($id) === null, 'La receta archivada sigue siendo pública');
+$recetaArchivada = $repository->obtenerPorId($id, true);
+comprobar(($recetaArchivada['archivada_en'] ?? null) !== null, 'No registró la fecha de archivado');
+$activas = $repository->listar(1, 10, null, null, null, 'activas');
+$archivadas = $repository->listar(1, 10, null, null, null, 'archivadas');
+comprobar(($activas['paginacion']['total'] ?? -1) === 0, 'Incluyó una receta archivada entre las activas');
+comprobar(($archivadas['paginacion']['total'] ?? -1) === 1, 'No incluyó la receta en el archivo');
+
+comprobar($repository->cambiarArchivado($id, false), 'No restauró la receta');
+comprobar($repository->obtenerPorId($id) !== null, 'La receta restaurada no volvió a ser pública');
+$activasRestauradas = $repository->listar(1, 10, null, null, null, 'activas');
+comprobar(($activasRestauradas['paginacion']['total'] ?? -1) === 1, 'No devolvió la receta restaurada al listado activo');
+
 fwrite(STDOUT, "RecetaUpdateTest: OK\n");
 

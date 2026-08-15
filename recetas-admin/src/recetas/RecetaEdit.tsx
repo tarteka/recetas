@@ -14,12 +14,14 @@ import {
 } from 'react-admin';
 import { ClasificacionInput } from './ClasificacionInput';
 import { ImagenUpload } from './ImagenUpload';
+import { AccionArchivado } from './AccionArchivado';
 
 function BarraGuardado() {
   const redirect = useRedirect();
 
   return (
     <Box className="editor-receta__toolbar" role="toolbar">
+      <AccionArchivado />
       <SaveButton label="Guardar cambios" />
       <Button
         type="button"

@@ -13,6 +13,18 @@ if ($sql === false) {
     throw new RuntimeException("No se pudo leer schema.sql");
 }
 
+$tablaRecetas = $pdo->query(
+    "SELECT 1 FROM sqlite_master WHERE type = \"table\" AND name = \"recetas\""
+)->fetchColumn();
+
+if ($tablaRecetas !== false) {
+    $columnas = $pdo->query("PRAGMA table_info(recetas)")->fetchAll();
+    $nombres = array_column($columnas, "name");
+    if (!in_array("archivada_en", $nombres, true)) {
+        $pdo->exec("ALTER TABLE recetas ADD COLUMN archivada_en TEXT");
+    }
+}
+
 $pdo->exec($sql);
 '
 

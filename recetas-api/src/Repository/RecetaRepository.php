@@ -39,10 +39,17 @@ final class RecetaRepository
         int $porPagina,
         ?string $buscar,
         ?string $categoria,
-        ?string $etiqueta
+        ?string $etiqueta,
+        string $estado = 'activas'
     ): array {
         $condiciones = [];
         $parametros = [];
+
+        if ($estado === 'archivadas') {
+            $condiciones[] = 'r.archivada_en IS NOT NULL';
+        } elseif ($estado !== 'todas') {
+            $condiciones[] = 'r.archivada_en IS NULL';
+        }
 
         if ($buscar !== null) {
             $condiciones[] = '(r.titulo LIKE :buscar OR r.descripcion LIKE :buscar)';
@@ -86,7 +93,8 @@ final class RecetaRepository
                 r.fuente_nombre,
                 r.raciones,
                 r.tiempo_total_min,
-                r.creado_en
+                r.creado_en,
+                r.archivada_en
             FROM recetas r' . $where . '
             ORDER BY r.creado_en DESC, r.id DESC
             LIMIT :limite OFFSET :desplazamiento'
@@ -122,11 +130,12 @@ final class RecetaRepository
             'SELECT
                 c.nombre,
                 c.slug,
-                COUNT(rc.receta_id) AS total_recetas
+                COUNT(r.id) AS total_recetas
             FROM categorias c
             LEFT JOIN receta_categorias rc ON rc.categoria_id = c.id
+            LEFT JOIN recetas r ON r.id = rc.receta_id AND r.archivada_en IS NULL
             GROUP BY c.id, c.nombre, c.slug
-            HAVING COUNT(rc.receta_id) > 0
+            HAVING COUNT(r.id) > 0
             ORDER BY c.nombre'
         );
 
@@ -139,11 +148,12 @@ final class RecetaRepository
             'SELECT
                 e.nombre,
                 e.slug,
-                COUNT(re.receta_id) AS total_recetas
+                COUNT(r.id) AS total_recetas
             FROM etiquetas e
             LEFT JOIN receta_etiquetas re ON re.etiqueta_id = e.id
+            LEFT JOIN recetas r ON r.id = re.receta_id AND r.archivada_en IS NULL
             GROUP BY e.id, e.nombre, e.slug
-            HAVING COUNT(re.receta_id) > 0
+            HAVING COUNT(r.id) > 0
             ORDER BY e.nombre'
         );
 
@@ -202,13 +212,13 @@ final class RecetaRepository
         }
     }
 
-    public function obtenerPorId(int $id): ?array
+    public function obtenerPorId(int $id, bool $incluirArchivadas = false): ?array
     {
         // Recupera la cabecera de la receta solicitada.
         $statement = $this->pdo->prepare(
             'SELECT *
             FROM recetas
-            WHERE id = :id'
+            WHERE id = :id' . ($incluirArchivadas ? '' : ' AND archivada_en IS NULL')
         );
 
         $statement->execute(['id' => $id]);
@@ -283,6 +293,19 @@ final class RecetaRepository
         $receta['etiquetas'] = $statement->fetchAll();
 
         return $receta;
+    }
+
+    public function cambiarArchivado(int $id, bool $archivar): bool
+    {
+        $statement = $this->pdo->prepare(
+            'UPDATE recetas
+             SET archivada_en = ' . ($archivar ? 'CURRENT_TIMESTAMP' : 'NULL') . ',
+                 actualizado_en = CURRENT_TIMESTAMP
+             WHERE id = :id'
+        );
+        $statement->execute(['id' => $id]);
+
+        return $statement->rowCount() > 0;
     }
 
     public function crear(array $datos): int

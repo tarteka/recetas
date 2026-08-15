@@ -16,7 +16,8 @@ CREATE TABLE IF NOT EXISTS recetas (
     tiempo_total_min INTEGER,
 
     creado_en TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    actualizado_en TEXT
+    actualizado_en TEXT,
+    archivada_en TEXT
 );
 
 -- Catálogo de ingredientes.
@@ -126,6 +127,9 @@ CREATE INDEX IF NOT EXISTS idx_receta_categorias_categoria
 
 CREATE INDEX IF NOT EXISTS idx_receta_etiquetas_etiqueta
     ON receta_etiquetas(etiqueta_id);
+
+CREATE INDEX IF NOT EXISTS idx_recetas_archivada_en
+    ON recetas(archivada_en);
 
 -- Sesiones propias del panel administrativo. El identificador recibido en la
 -- cookie nunca se persiste en texto plano.

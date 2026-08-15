@@ -50,7 +50,33 @@ final class RecetaController
                 $porPagina,
                 $buscar,
                 $categoria,
-                $etiqueta
+                $etiqueta,
+                'activas'
+            )
+        );
+    }
+
+    public function listarAdmin(
+        ServerRequestInterface $request,
+        ResponseInterface $response
+    ): ResponseInterface {
+        $query = $request->getQueryParams();
+        $pagina = max(1, (int) ($query['pagina'] ?? 1));
+        $porPagina = min(48, max(1, (int) ($query['por_pagina'] ?? 10)));
+        $estado = (string) ($query['estado'] ?? 'activas');
+        if (!in_array($estado, ['activas', 'archivadas', 'todas'], true)) {
+            $estado = 'activas';
+        }
+
+        return $this->json(
+            $response,
+            $this->repository->listar(
+                $pagina,
+                $porPagina,
+                $this->parametroOpcional($query, 'buscar'),
+                $this->parametroOpcional($query, 'categoria'),
+                $this->parametroOpcional($query, 'etiqueta'),
+                $estado
             )
         );
     }
@@ -105,6 +131,22 @@ final class RecetaController
             $response,
             $receta
         );
+    }
+
+    public function obtenerAdmin(
+        ServerRequestInterface $request,
+        ResponseInterface $response,
+        array $args
+    ): ResponseInterface {
+        $id = (int) ($args['id'] ?? 0);
+        if ($id <= 0) {
+            return $this->json($response, ['error' => 'Identificador de receta no válido'], 400);
+        }
+
+        $receta = $this->repository->obtenerPorId($id, true);
+        return $receta === null
+            ? $this->json($response, ['error' => 'Receta no encontrada'], 404)
+            : $this->json($response, $receta);
     }
 
     /**
@@ -188,8 +230,43 @@ final class RecetaController
 
         return $this->json(
             $response,
-            $this->repository->obtenerPorId($id)
+            $this->repository->obtenerPorId($id, true)
         );
+    }
+
+    public function archivar(
+        ServerRequestInterface $request,
+        ResponseInterface $response,
+        array $args
+    ): ResponseInterface {
+        return $this->cambiarArchivado($response, $args, true);
+    }
+
+    public function restaurar(
+        ServerRequestInterface $request,
+        ResponseInterface $response,
+        array $args
+    ): ResponseInterface {
+        return $this->cambiarArchivado($response, $args, false);
+    }
+
+    private function cambiarArchivado(
+        ResponseInterface $response,
+        array $args,
+        bool $archivar
+    ): ResponseInterface {
+        $id = (int) ($args['id'] ?? 0);
+        if ($id <= 0) {
+            return $this->json($response, ['error' => 'Identificador de receta no válido'], 400);
+        }
+        if (!$this->repository->cambiarArchivado($id, $archivar)) {
+            return $this->json($response, ['error' => 'Receta no encontrada'], 404);
+        }
+
+        return $this->json($response, [
+            'id' => $id,
+            'archivada_en' => $archivar ? gmdate('Y-m-d H:i:s') : null,
+        ]);
     }
 
     private function parametroOpcional(array $query, string $nombre): ?string

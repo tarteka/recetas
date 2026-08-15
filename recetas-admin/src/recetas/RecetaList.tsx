@@ -7,10 +7,25 @@ import {
   ImageField,
   List,
   NumberField,
+  SelectInput,
   SimpleList,
   TextField,
 } from 'react-admin';
 import type { RecetaResumenAdmin } from '../types';
+
+const filtros = [
+  <SelectInput
+    key="estado"
+    source="estado"
+    label="Estado"
+    choices={[
+      { id: 'activas', name: 'Activas' },
+      { id: 'archivadas', name: 'Archivadas' },
+      { id: 'todas', name: 'Todas' },
+    ]}
+    alwaysOn
+  />,
+];
 
 function taxonomias(valores: string[], vacio: string) {
   if (valores.length === 0) return <Typography variant="body2" color="text.secondary">{vacio}</Typography>;
@@ -50,6 +65,7 @@ function ListadoMovil() {
       primaryText={(receta) => (
         <Box className="lista-recetas-movil__cabecera">
           <Typography component="strong">{receta.titulo}</Typography>
+          {receta.archivada_en && <Chip className="lista-recetas__archivada" label="Archivada" size="small" />}
           <Box className="lista-recetas-movil__meta">
             <Typography component="span" variant="caption">ID {receta.id}</Typography>
             <Typography component="span" variant="caption">
@@ -82,7 +98,16 @@ function ListadoEscritorio() {
         sx={{ '& img': { width: 88, height: 59, objectFit: 'cover', borderRadius: 1.5 } }}
       />
       <NumberField source="id" label="ID" sortable={false} />
-      <TextField source="titulo" label="Título" sortable={false} />
+      <FunctionField<RecetaResumenAdmin>
+        label="Título"
+        sortable={false}
+        render={(receta) => (
+          <Box className="lista-recetas__titulo">
+            <TextField source="titulo" />
+            {receta.archivada_en && <Chip className="lista-recetas__archivada" label="Archivada" size="small" />}
+          </Box>
+        )}
+      />
       <FunctionField<RecetaResumenAdmin>
         label="Categorías"
         sortable={false}
@@ -104,6 +129,8 @@ export function RecetaList() {
   return (
     <List
       className="lista-recetas"
+      filters={filtros}
+      filterDefaultValues={{ estado: 'activas' }}
       perPage={10}
       sort={{ field: 'creado_en', order: 'DESC' }}
       title="Recetas"

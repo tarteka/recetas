@@ -86,9 +86,11 @@ async function getList<RecordType extends RaRecord = RaRecord>(
   const buscar = valorFiltro(params.filter, 'buscar') ?? valorFiltro(params.filter, 'q');
   const categoria = valorFiltro(params.filter, 'categoria');
   const etiqueta = valorFiltro(params.filter, 'etiqueta');
+  const estado = valorFiltro(params.filter, 'estado') ?? 'activas';
   if (buscar) query.set('buscar', buscar);
   if (categoria) query.set('categoria', categoria);
   if (etiqueta) query.set('etiqueta', etiqueta);
+  query.set('estado', estado);
 
   const response = await solicitarJson(`/api/admin/recetas?${query}`);
   if (!esRespuestaRecetas(response)) {

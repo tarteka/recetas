@@ -39,6 +39,19 @@ body {
   font-weight: 700;
 }
 
+.lista-recetas__titulo {
+  display: grid;
+  justify-items: start;
+  gap: 5px;
+}
+
+.lista-recetas__archivada.MuiChip-root {
+  height: 23px;
+  color: #79520d;
+  font-size: .68rem;
+  background: #fff0c9;
+}
+
 .lista-recetas-movil {
   padding: 8px !important;
   background: transparent;
@@ -89,6 +102,10 @@ body {
 .lista-recetas-movil__cabecera {
   display: grid;
   gap: 5px;
+}
+
+.lista-recetas-movil__cabecera .lista-recetas__archivada {
+  width: max-content;
 }
 
 .lista-recetas-movil__cabecera strong {
@@ -431,6 +448,10 @@ body {
   min-width: 180px;
 }
 
+.editor-receta .editor-receta__toolbar > .editor-receta__archivar {
+  margin-right: auto;
+}
+
 @media (max-width: 700px) {
   .editor-receta .RaSimpleFormIterator-form {
     display: grid;
@@ -468,6 +489,11 @@ body {
   .editor-receta .editor-receta__toolbar > .MuiButton-root {
     width: 100%;
     min-width: 0;
+  }
+
+  .editor-receta .editor-receta__toolbar > .editor-receta__archivar {
+    grid-column: 1 / -1;
+    margin-right: 0;
   }
 
   .editor-receta .editor-receta__toolbar {
