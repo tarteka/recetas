@@ -50,7 +50,7 @@ export default function PaginaListado() {
       nivel: maximo === minimo
         ? [...etiqueta.slug].reduce((total, caracter) => total + caracter.charCodeAt(0), 0) % 5
         : Math.round(((etiqueta.total_recetas - minimo) / (maximo - minimo)) * 4),
-    }));
+    })).sort((a, b) => b.nivel - a.nivel || a.nombre.localeCompare(b.nombre, 'es'));
   }, [etiquetasBase]);
 
   const actualizarBusqueda = useCallback((valor: string) => {

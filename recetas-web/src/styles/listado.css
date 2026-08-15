@@ -235,65 +235,6 @@
   }
 }
 
-.nube-etiquetas {
-  display: none;
-  padding-top: 1.5rem;
-  border-top: 1px solid var(--borde);
-}
-
-.nube-etiquetas h2 {
-  margin-bottom: .8rem;
-  color: var(--texto);
-  font-size: .82rem;
-  font-weight: 800;
-  letter-spacing: .04em;
-  text-transform: uppercase;
-}
-
-.nube-etiquetas a {
-  color: var(--texto-secundario);
-  text-decoration: none;
-  transition: color .15s, transform .15s;
-}
-
-.nube-etiquetas a:hover,
-.nube-etiquetas a[aria-current="page"] {
-  color: var(--principal);
-  text-decoration: underline;
-  text-decoration-thickness: 2px;
-  text-underline-offset: 3px;
-}
-
-.nube-etiquetas a:hover {
-  transform: translateY(-1px);
-}
-
-
-/* En colecciones pequeñas, la composición centrada mantiene el aspecto de nube aunque muchas etiquetas empaten en frecuencia. */
-.nube-etiquetas__lista {
-  display: block;
-  text-align: center;
-  line-height: 1.35;
-}
-
-.nube-etiquetas__lista > a {
-  display: inline-block;
-  margin: .16rem .3rem;
-  vertical-align: middle;
-}
-
-.nube-etiquetas__nivel-0 { font-size: .72rem; font-weight: 500; opacity: .78; }
-.nube-etiquetas__nivel-1 { font-size: .86rem; font-weight: 550; opacity: .86; }
-.nube-etiquetas__nivel-2 { font-size: 1rem; font-weight: 600; }
-.nube-etiquetas__nivel-3 { font-size: 1.22rem; font-weight: 650; }
-.nube-etiquetas__nivel-4 { font-size: 1.48rem; font-weight: 700; color: var(--texto); }
-.nube-etiquetas .nube-etiquetas__todas { display: block; width: max-content; margin: 0 auto .55rem; }
-
-@media (min-width: 960px) {
-  .nube-etiquetas {
-    display: block;
-  }
-}
 
 .resumen-resultados {
   margin: 0 0 1rem;
@@ -350,4 +291,119 @@
   .paginacion { grid-template-columns: 1fr 1fr; }
   .paginacion ol { grid-column: 1 / -1; grid-row: 1; }
   .paginacion__direccion { grid-row: 2; }
+}
+
+
+
+.nube-etiquetas {
+  display: none;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--borde);
+}
+
+.nube-etiquetas__cabecera {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.nube-etiquetas h2 {
+  margin: 0;
+  color: var(--texto);
+  font-size: .82rem;
+  font-weight: 800;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+
+.nube-etiquetas__todas {
+  color: var(--principal);
+  font-size: .72rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.nube-etiquetas__todas:hover { text-decoration: underline; }
+
+.nube-etiquetas__lista {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: .45rem .7rem;
+}
+
+.nube-etiquetas__lista > a {
+  display: inline-flex;
+  align-items: flex-start;
+  color: var(--texto-secundario);
+  line-height: 1.05;
+  text-decoration: none;
+  opacity: 0;
+  animation: tema-aparece .35s ease-out forwards;
+  transition: color .16s, opacity .16s, transform .16s;
+}
+
+.nube-etiquetas__lista > a::before {
+  content: '#';
+  margin-right: .08em;
+  color: var(--principal);
+  font-size: .72em;
+  font-weight: 500;
+  opacity: .45;
+}
+
+.nube-etiquetas__lista > a:nth-child(2) { animation-delay: 25ms; }
+.nube-etiquetas__lista > a:nth-child(3) { animation-delay: 50ms; }
+.nube-etiquetas__lista > a:nth-child(4) { animation-delay: 75ms; }
+.nube-etiquetas__lista > a:nth-child(5) { animation-delay: 100ms; }
+.nube-etiquetas__lista > a:nth-child(n + 6) { animation-delay: 125ms; }
+
+.nube-etiquetas__lista > a:hover {
+  color: var(--principal);
+  transform: translateY(-1px);
+}
+
+.nube-etiquetas__lista > a[aria-current="page"] {
+  color: var(--principal);
+  font-weight: 750;
+}
+
+.nube-etiquetas__lista > a[aria-current="page"] span {
+  box-shadow: inset 0 -2px 0 rgb(53 96 68 / 28%);
+}
+
+.nube-etiquetas__lista sup {
+  margin-left: .2rem;
+  color: var(--texto-secundario);
+  font-family: var(--sans);
+  font-size: .52rem;
+  font-weight: 700;
+  opacity: .58;
+}
+
+.nube-etiquetas__nivel-0 { font-size: .74rem; font-weight: 500; opacity: .72; }
+.nube-etiquetas__nivel-1 { font-size: .84rem; font-weight: 540; opacity: .8; }
+.nube-etiquetas__nivel-2 { font-size: .96rem; font-weight: 600; }
+.nube-etiquetas__nivel-3 { font-size: 1.12rem; font-weight: 650; }
+.nube-etiquetas__nivel-4 { font-size: 1.32rem; font-weight: 720; color: #425e49; letter-spacing: -.025em; }
+
+@keyframes tema-aparece {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (min-width: 960px) {
+  .nube-etiquetas { display: block; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nube-etiquetas__lista > a {
+    opacity: 1;
+    animation: none;
+    transition: color .15s;
+  }
+
+  .nube-etiquetas__lista > a:hover { transform: none; }
 }

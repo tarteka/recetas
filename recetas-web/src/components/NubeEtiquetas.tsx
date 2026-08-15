@@ -14,8 +14,20 @@ function urlEtiqueta(parametros: URLSearchParams, slug?: string) {
 
 export default function NubeEtiquetas({ etiquetas, etiquetaActiva, parametros }: Props) {
   if (etiquetas.length === 0) return null;
-  return <nav className="nube-etiquetas" aria-label="Filtrar por etiqueta"><h2>Etiquetas</h2><div className="nube-etiquetas__lista">
-    {etiquetaActiva && <Link className="nube-etiquetas__todas" to={urlEtiqueta(parametros)}>Todas</Link>}
-    {etiquetas.map((etiqueta) => <Link key={etiqueta.slug} className={`nube-etiquetas__nivel-${etiqueta.nivel}`} to={urlEtiqueta(parametros, etiqueta.slug)} aria-current={etiquetaActiva === etiqueta.slug ? 'page' : undefined} title={`${etiqueta.total_recetas} ${etiqueta.total_recetas === 1 ? 'receta' : 'recetas'}`}>{etiqueta.nombre}</Link>)}
-  </div></nav>;
+
+  return <nav className="nube-etiquetas" aria-label="Filtrar por etiqueta">
+    <div className="nube-etiquetas__cabecera">
+      <h2>Temas</h2>
+      {etiquetaActiva && <Link className="nube-etiquetas__todas" to={urlEtiqueta(parametros)}>Limpiar</Link>}
+    </div>
+    <div className="nube-etiquetas__lista">
+      {etiquetas.map((etiqueta) => <Link
+        key={etiqueta.slug}
+        className={`nube-etiquetas__nivel-${etiqueta.nivel}`}
+        to={urlEtiqueta(parametros, etiqueta.slug)}
+        aria-current={etiquetaActiva === etiqueta.slug ? 'page' : undefined}
+        title={`${etiqueta.total_recetas} ${etiqueta.total_recetas === 1 ? 'receta' : 'recetas'}`}
+      ><span>{etiqueta.nombre}</span><sup>{etiqueta.total_recetas}</sup></Link>)}
+    </div>
+  </nav>;
 }
