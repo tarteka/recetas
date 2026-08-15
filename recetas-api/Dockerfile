@@ -1,12 +1,22 @@
 FROM php:8.4-cli
 
-# Instala dependencias mínimas y soporte SQLite.
+# Instala dependencias mínimas, SQLite y librerías necesarias para GD.
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         git \
         unzip \
         libsqlite3-dev \
-    && docker-php-ext-install pdo_sqlite \
+        libjpeg62-turbo-dev \
+        libpng-dev \
+        libwebp-dev \
+        libfreetype6-dev \
+    && docker-php-ext-configure gd \
+        --with-jpeg \
+        --with-webp \
+        --with-freetype \
+    && docker-php-ext-install -j"$(nproc)" \
+        pdo_sqlite \
+        gd \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer

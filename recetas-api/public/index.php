@@ -22,17 +22,37 @@ $repository = new RecetaRepository(
 );
 
 $controller = new RecetaController($repository);
+$apiTokenMiddleware = new ApiTokenMiddleware();
 
-// Define únicamente el mapeo entre rutas HTTP y controlador.
-$app->get('/salud', fn ($request, $response) =>
+
+
+/**
+ * RUTAS
+ */
+
+// Comprueba que la API está operativa.
+$app->get(
+    '/salud',
+    fn($request, $response) =>
     $controller->salud($request, $response)
 );
 
-$app->get('/recetas', fn ($request, $response) =>
+// Devuelve todas las recetas.
+$app->get(
+    '/recetas',
+    fn($request, $response) =>
     $controller->listar($request, $response)
 );
 
-$app->get('/recetas/{id:[0-9]+}', fn (
+// Actualiza la imagen de una receta mediante su identificador.
+$app->post(
+    '/recetas/{id:[0-9]+}/imagen',
+    [$controller, 'actualizarImagen']
+)->add($apiTokenMiddleware);
+
+
+// Obtiene una receta completa mediante su identificador.
+$app->get('/recetas/{id:[0-9]+}', fn(
     $request,
     $response,
     $args
@@ -42,11 +62,39 @@ $app->get('/recetas/{id:[0-9]+}', fn (
     $args
 ));
 
-// Obtiene una receta completa mediante su identificador.
+// Crea una nueva receta.
 // Ruta protegida mediante el middleware de autenticación por token.
-$app->post('/recetas', fn ($request, $response) =>
+$app->post(
+    '/recetas',
+    fn($request, $response) =>
     $controller->crear($request, $response)
-)->add(new ApiTokenMiddleware());
+)->add($apiTokenMiddleware);
 
+
+
+// Sirve las imágenes normalizadas almacenadas en el volumen persistente.
+$app->get('/imagenes/{nombre:[a-f0-9]{32}\.webp}', function (
+    $request,
+    $response,
+    $args
+) {
+    $ruta = '/datos/imagenes/' . $args['nombre'];
+
+    if (!is_file($ruta)) {
+        return $response->withStatus(404);
+    }
+
+    $contenido = file_get_contents($ruta);
+
+    if ($contenido === false) {
+        return $response->withStatus(500);
+    }
+
+    $response->getBody()->write($contenido);
+
+    return $response
+        ->withHeader('Content-Type', 'image/webp')
+        ->withHeader('Cache-Control', 'public, max-age=31536000, immutable');
+});
 
 $app->run();

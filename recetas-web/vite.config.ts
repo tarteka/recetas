@@ -15,6 +15,11 @@ export default defineConfig({
         // El navegador pide /api/recetas y Slim recibe /recetas.
         rewrite: (path) => path.replace(/^\/api/, ''),
       },
+
+      '/imagenes': {
+        target: 'http://recetas-api:8080',
+        changeOrigin: true,
+      },
     },
   },
 });

@@ -14,6 +14,26 @@ final class RecetaRepository
     ) {
     }
 
+    /**
+     * Actualiza la imagen almacenada de una receta.
+     */
+    public function actualizarImagen(int $id, string $imagenUrl): bool
+    {
+        $statement = $this->pdo->prepare(
+            'UPDATE recetas
+         SET imagen_url = :imagen_url,
+             actualizado_en = CURRENT_TIMESTAMP
+         WHERE id = :id'
+        );
+
+        $statement->execute([
+            'id' => $id,
+            'imagen_url' => $imagenUrl,
+        ]);
+
+        return $statement->rowCount() > 0;
+    }
+
     public function listar(): array
     {
         // Devuelve las recetas ordenadas desde la más reciente.
