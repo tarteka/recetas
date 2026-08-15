@@ -5,6 +5,7 @@ import { BrowserRouter } from 'react-router-dom';
 import { AdminLogin } from './AdminLogin';
 import { authProvider } from './authProvider';
 import { dataProvider } from './dataProvider';
+import { RecetaCreate } from './recetas/RecetaCreate';
 import { RecetaEdit } from './recetas/RecetaEdit';
 import { RecetaList } from './recetas/RecetaList';
 import { temaRecetario } from './theme';
@@ -21,7 +22,7 @@ createRoot(document.getElementById('root')!).render(
         title="Mi Recetario"
         theme={temaRecetario}
       >
-        <Resource name="recetas" list={RecetaList} edit={RecetaEdit} options={{ label: 'Recetas' }} />
+        <Resource name="recetas" list={RecetaList} edit={RecetaEdit} create={RecetaCreate} options={{ label: 'Recetas' }} />
       </Admin>
     </BrowserRouter>
   </StrictMode>,

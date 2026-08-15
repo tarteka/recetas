@@ -106,7 +106,8 @@ body {
   width: 100%;
 }
 
-.editor-receta .RaEdit-card {
+.editor-receta .RaEdit-card,
+.editor-receta .RaCreate-card {
   width: min(100%, 1440px);
   margin-inline: auto;
   overflow: hidden;
@@ -216,7 +217,8 @@ body {
 }
 
 @media (max-width: 700px) {
-  .editor-receta .RaEdit-card {
+  .editor-receta .RaEdit-card,
+.editor-receta .RaCreate-card {
     border-radius: 14px;
   }
 
@@ -329,8 +331,59 @@ body {
   width: 100%;
 }
 
-.editor-receta__clasificacion .MuiAutocomplete-root .MuiChip-root {
-  border: 1px solid #bfd0c2;
+.editor-receta__clasificacion .clasificacion-selector {
+  margin-top: 4px;
+}
+
+.editor-receta__clasificacion .clasificacion-selector .MuiAutocomplete-inputRoot {
+  align-content: center;
+  min-height: 68px;
+  padding: 10px 44px 10px 12px !important;
+  border-radius: 14px;
+  background: #fff;
+}
+
+.editor-receta__clasificacion .clasificacion-selector .MuiAutocomplete-input {
+  min-width: 150px !important;
+}
+
+.editor-receta__clasificacion .clasificacion-selector .MuiChip-root {
+  height: 34px;
+  margin: 3px;
+  padding-inline: 3px;
+  border: 1px solid #b8cbbd;
+  border-radius: 10px;
+  color: #294c35;
+  font-weight: 650;
+  background: #e7efe8;
+  box-shadow: 0 1px 2px rgb(38 45 35 / 5%);
+  transition: transform .15s ease, background-color .15s ease;
+}
+
+.editor-receta__clasificacion .clasificacion-selector .MuiChip-root:hover {
+  transform: translateY(-1px);
+  background: #dce9de;
+}
+
+.editor-receta__clasificacion .clasificacion-selector .MuiFormHelperText-root {
+  margin: 8px 2px 0;
+  color: #74766f;
+}
+
+.MuiAutocomplete-popper .MuiAutocomplete-paper {
+  margin-top: 6px;
+  border: 1px solid #dedbd1;
+  border-radius: 14px;
+  box-shadow: 0 14px 36px rgb(38 45 35 / 14%);
+}
+
+.MuiAutocomplete-popper .MuiAutocomplete-option {
+  min-height: 42px;
+  margin: 4px 6px;
+  border-radius: 9px;
+}
+
+.MuiAutocomplete-popper .MuiAutocomplete-option[aria-selected="true"] {
   color: #294c35;
   background: #e7efe8;
 }

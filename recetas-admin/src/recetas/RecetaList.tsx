@@ -7,10 +7,10 @@ import {
   NumberField,
   TextField,
 } from 'react-admin';
-import type { RecetaResumen } from '../types';
+import type { RecetaResumenAdmin } from '../types';
 
-function nombresCategorias(receta: RecetaResumen): string {
-  return receta.categorias.map((categoria) => categoria.nombre).join(', ') || 'Sin categoría';
+function nombresCategorias(receta: RecetaResumenAdmin): string {
+  return receta.categorias.join(', ') || 'Sin categoría';
 }
 
 export function RecetaList() {
@@ -31,7 +31,7 @@ export function RecetaList() {
         <TextField source="titulo" label="Título" sortable={false} />
         <NumberField source="tiempo_total_min" label="Tiempo total (min)" sortable={false} />
         <NumberField source="raciones" label="Raciones" sortable={false} />
-        <FunctionField<RecetaResumen>
+        <FunctionField<RecetaResumenAdmin>
           label="Categorías"
           sortable={false}
           render={nombresCategorias}

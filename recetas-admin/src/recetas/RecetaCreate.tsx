@@ -2,7 +2,7 @@ import { Box, Typography } from '@mui/material';
 import {
   ArrayInput,
   Button,
-  Edit,
+  Create,
   ImageField,
   NumberInput,
   SaveButton,
@@ -16,12 +16,12 @@ import {
 } from 'react-admin';
 import { ClasificacionInput } from './ClasificacionInput';
 
-function BarraGuardado() {
+function BarraCreacion() {
   const redirect = useRedirect();
 
   return (
     <Toolbar className="editor-receta__toolbar">
-      <SaveButton label="Guardar cambios" />
+      <SaveButton label="Crear receta" />
       <Button
         label="Cancelar"
         onClick={() => redirect('list', 'recetas')}
@@ -34,20 +34,28 @@ function BarraGuardado() {
 const validarTitulo = [required('El título es obligatorio')];
 const validarPositivo = [minValue(0, 'No puede ser negativo')];
 
-export function RecetaEdit() {
+export function RecetaCreate() {
   return (
-    <Edit
+    <Create
       className="editor-receta"
-      mutationMode="pessimistic"
-      redirect="list"
-      title="Editar receta"
+      redirect="edit"
+      title="Nueva receta"
       sx={{
-        '& .RaEdit-card': {
+        '& .RaCreate-card': {
           overflow: 'hidden',
         },
       }}
     >
-      <TabbedForm toolbar={<BarraGuardado />} warnWhenUnsavedChanges>
+      <TabbedForm
+        toolbar={<BarraCreacion />}
+        warnWhenUnsavedChanges
+        defaultValues={{
+          ingredientes: [{ cantidad: null, unidad: '', nombre: '', notas: '' }],
+          pasos: [{ instruccion: '' }],
+          categorias: [],
+          etiquetas: [],
+        }}
+      >
         <TabbedForm.Tab label="Información">
           <Box sx={{ width: '100%' }}>
             <TextInput
@@ -185,6 +193,6 @@ export function RecetaEdit() {
           </Box>
         </TabbedForm.Tab>
       </TabbedForm>
-    </Edit>
+    </Create>
   );
 }

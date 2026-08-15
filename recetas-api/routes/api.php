@@ -45,6 +45,9 @@ return static function (
         ->add($adminSessionMiddleware);
     $app->get('/admin/recetas', [$recetaController, 'listar'])
         ->add($adminSessionMiddleware);
+    $app->post('/admin/recetas', [$recetaController, 'crear'])
+        ->add($adminCsrfMiddleware)
+        ->add($adminSessionMiddleware);
     $app->get('/admin/recetas/{id:[0-9]+}', [$recetaController, 'obtener'])
         ->add($adminSessionMiddleware);
     $app->put('/admin/recetas/{id:[0-9]+}', [$recetaController, 'actualizar'])

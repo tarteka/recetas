@@ -1,5 +1,7 @@
 import { HttpError } from 'react-admin';
 import type {
+  CreateParams,
+  CreateResult,
   DataProvider,
   GetListParams,
   GetListResult,
@@ -141,6 +143,22 @@ function prepararReceta(data: Record<string, unknown>): Record<string, unknown> 
 }
 
 
+async function create<RecordType extends RaRecord = RaRecord>(
+  resource: string,
+  params: CreateParams<RecordType>,
+): Promise<CreateResult<RecordType>> {
+  comprobarRecurso(resource);
+  const response = await solicitarJson('/api/admin/recetas', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(prepararReceta(params.data as Record<string, unknown>)),
+  });
+  if (typeof response !== 'object' || response === null || !('id' in response)) {
+    throw new Error('La API no devolvió el identificador de la receta creada');
+  }
+  return { data: normalizarReceta(response as Record<string, unknown>) as unknown as RecordType };
+}
+
 async function update<RecordType extends RaRecord = RaRecord>(
   resource: string,
   params: UpdateParams<RecordType>,
@@ -172,7 +190,7 @@ export const dataProvider: DataProvider = {
   getOne,
   getMany: (resource) => noSoportado('getMany', resource),
   getManyReference: (resource) => noSoportado('getManyReference', resource),
-  create: (resource) => noSoportado('create', resource),
+  create,
   update,
   updateMany: (resource) => noSoportado('updateMany', resource),
   delete: (resource) => noSoportado('delete', resource),
