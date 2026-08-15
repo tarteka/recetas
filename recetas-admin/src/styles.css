@@ -626,6 +626,7 @@ body {
 }
 
 .imagen-upload__preview {
+  position: relative;
   display: grid;
   place-items: center;
   width: min(100%, 620px);
@@ -635,6 +636,32 @@ body {
   border: 1px solid #dedbd1;
   border-radius: 18px;
   background: #f3f1eb;
+}
+
+.imagen-upload__vacia {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  padding: 24px;
+  text-align: center;
+}
+
+.imagen-upload__vacia > svg {
+  color: #809185;
+  font-size: 46px;
+}
+
+.imagen-upload__estado {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  padding: 5px 10px;
+  color: #fff;
+  font-size: .72rem;
+  font-weight: 700;
+  border-radius: 999px;
+  background: rgb(33 47 38 / 82%);
+  backdrop-filter: blur(6px);
 }
 
 .imagen-upload__preview img {
@@ -667,20 +694,44 @@ body {
   transform: translateY(-2px);
 }
 
+.imagen-upload__archivo {
+  display: grid;
+  gap: 10px;
+  width: min(100%, 620px);
+  padding: 14px 16px;
+  border: 1px solid #dedbd1;
+  border-radius: 14px;
+  background: #fff;
+}
+
+.imagen-upload__archivo > .MuiBox-root:first-child {
+  min-width: 0;
+}
+
+.imagen-upload__archivo > .MuiBox-root:first-child > p {
+  overflow: hidden;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .imagen-upload__acciones {
   display: flex;
   align-items: center;
   justify-content: flex-end;
   gap: 10px;
-  width: min(100%, 620px);
 }
 
-.imagen-upload__acciones > p {
-  min-width: 0;
-  margin-right: auto;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+.imagen-upload__acciones .MuiButton-contained {
+  gap: 8px;
+}
+
+.imagen-upload__pie {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  width: min(100%, 620px);
 }
 
 @media (max-width: 620px) {
@@ -694,17 +745,20 @@ body {
   }
 
   .imagen-upload__acciones {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .imagen-upload__acciones > p {
-    grid-column: 1 / -1;
-    width: 100%;
+    display: flex;
   }
 
   .imagen-upload__acciones > .MuiButton-root {
     min-width: 0;
+    width: 100%;
+  }
+
+  .imagen-upload__pie {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .imagen-upload__pie > .MuiButton-root {
     width: 100%;
   }
 }

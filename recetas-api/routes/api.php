@@ -56,6 +56,9 @@ return static function (
     $app->post('/admin/recetas/{id:[0-9]+}/imagen', [$imagenController, 'actualizar'])
         ->add($adminCsrfMiddleware)
         ->add($adminSessionMiddleware);
+    $app->delete('/admin/recetas/{id:[0-9]+}/imagen', [$imagenController, 'eliminar'])
+        ->add($adminCsrfMiddleware)
+        ->add($adminSessionMiddleware);
     $app->delete('/admin/recetas/{id:[0-9]+}', [$recetaController, 'archivar'])
         ->add($adminCsrfMiddleware)
         ->add($adminSessionMiddleware);

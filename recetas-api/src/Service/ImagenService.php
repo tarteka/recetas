@@ -48,6 +48,21 @@ final class ImagenService
     }
 
     /**
+     * Elimina únicamente imágenes generadas por este servicio.
+     */
+    public function eliminar(string $imagenUrl): void
+    {
+        if (!preg_match('#^/imagenes/([a-f0-9]{32}\.webp)$#', $imagenUrl, $coincidencias)) {
+            return;
+        }
+
+        $ruta = self::DIRECTORIO . '/' . $coincidencias[1];
+        if (is_file($ruta) && !unlink($ruta)) {
+            throw new RuntimeException('No se pudo eliminar la imagen anterior');
+        }
+    }
+
+    /**
      * Genera una imagen 1200x800 mediante redimensionado y recorte centrado.
      */
     private function normalizar(GdImage $origen): GdImage

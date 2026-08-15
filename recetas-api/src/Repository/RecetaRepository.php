@@ -17,7 +17,7 @@ final class RecetaRepository
     /**
      * Actualiza la imagen almacenada de una receta.
      */
-    public function actualizarImagen(int $id, string $imagenUrl): bool
+    public function actualizarImagen(int $id, ?string $imagenUrl): bool
     {
         $statement = $this->pdo->prepare(
             'UPDATE recetas
@@ -32,6 +32,16 @@ final class RecetaRepository
         ]);
 
         return $statement->rowCount() > 0;
+    }
+
+    public function imagenEnUso(string $imagenUrl): bool
+    {
+        $statement = $this->pdo->prepare(
+            'SELECT EXISTS(SELECT 1 FROM recetas WHERE imagen_url = :imagen_url)'
+        );
+        $statement->execute(['imagen_url' => $imagenUrl]);
+
+        return (bool) $statement->fetchColumn();
     }
 
     public function listar(

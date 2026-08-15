@@ -38,6 +38,11 @@ final class ImagenController
             );
         }
 
+        $receta = $this->repository->obtenerPorId((int) $id, true);
+        if ($receta === null) {
+            return $this->json($response, ['error' => 'Receta no encontrada'], 404);
+        }
+
         $contenido = (string) $request->getBody();
 
         if ($contenido === '') {
@@ -56,11 +61,25 @@ final class ImagenController
             );
 
             if (!$actualizada) {
+                $this->imagenService->eliminar($imagenUrl);
                 return $this->json(
                     $response,
                     ['error' => 'Receta no encontrada'],
                     404
                 );
+            }
+
+            $imagenAnterior = $receta['imagen_url'] ?? null;
+            if (
+                is_string($imagenAnterior)
+                && $imagenAnterior !== $imagenUrl
+                && !$this->repository->imagenEnUso($imagenAnterior)
+            ) {
+                try {
+                    $this->imagenService->eliminar($imagenAnterior);
+                } catch (RuntimeException $exception) {
+                    error_log($exception->getMessage());
+                }
             }
 
             return $this->json(
@@ -74,6 +93,40 @@ final class ImagenController
                 422
             );
         }
+    }
+
+    public function eliminar(
+        ServerRequestInterface $request,
+        ResponseInterface $response,
+        array $args
+    ): ResponseInterface {
+        $id = filter_var(
+            $args['id'] ?? null,
+            FILTER_VALIDATE_INT,
+            ['options' => ['min_range' => 1]]
+        );
+        if ($id === false) {
+            return $this->json($response, ['error' => 'Identificador de receta no válido'], 400);
+        }
+
+        $receta = $this->repository->obtenerPorId((int) $id, true);
+        if ($receta === null) {
+            return $this->json($response, ['error' => 'Receta no encontrada'], 404);
+        }
+
+        $imagenAnterior = $receta['imagen_url'] ?? null;
+        if (!$this->repository->actualizarImagen((int) $id, null)) {
+            return $this->json($response, ['error' => 'No se pudo actualizar la receta'], 409);
+        }
+        if (is_string($imagenAnterior) && !$this->repository->imagenEnUso($imagenAnterior)) {
+            try {
+                $this->imagenService->eliminar($imagenAnterior);
+            } catch (RuntimeException $exception) {
+                error_log($exception->getMessage());
+            }
+        }
+
+        return $this->json($response, ['imagen_url' => null]);
     }
 
     public function mostrar(

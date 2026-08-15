@@ -101,5 +101,10 @@ comprobar($repository->obtenerPorId($id) !== null, 'La receta restaurada no volv
 $activasRestauradas = $repository->listar(1, 10, null, null, null, 'activas');
 comprobar(($activasRestauradas['paginacion']['total'] ?? -1) === 1, 'No devolvió la receta restaurada al listado activo');
 
-fwrite(STDOUT, "RecetaUpdateTest: OK\n");
+$imagenPrueba = '/imagenes/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.webp';
+comprobar($repository->actualizarImagen($id, $imagenPrueba), 'No asignó la imagen de prueba');
+comprobar($repository->imagenEnUso($imagenPrueba), 'No detectó una imagen en uso');
+comprobar($repository->actualizarImagen($id, null), 'No eliminó la referencia a la imagen');
+comprobar(!$repository->imagenEnUso($imagenPrueba), 'Mantuvo la imagen como utilizada');
 
+fwrite(STDOUT, "RecetaUpdateTest: OK\n");
