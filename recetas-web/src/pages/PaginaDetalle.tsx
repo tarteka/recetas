@@ -29,7 +29,7 @@ export default function PaginaDetalle() {
 
   return <main className="pagina-detalle"><div className="contenedor navegacion"><Link className="volver" to="/">← Volver al recetario</Link></div><article>
     <header className="contenedor detalle-cabecera"><div className="detalle-titulo">
-      {receta.categorias.length > 0 && <ul className="chips" aria-label="Categorías">{receta.categorias.map((c) => <li key={c.slug}>{c.nombre}</li>)}</ul>}
+      {receta.categorias.length > 0 && <ul className="chips" aria-label="Categorías">{receta.categorias.map((c) => <li key={c.slug}><Link to={'/?categoria=' + encodeURIComponent(c.slug)}>{c.nombre}</Link></li>)}</ul>}
       <h1>{receta.titulo}</h1>{receta.descripcion && <p>{receta.descripcion}</p>}
     </div><ImagenReceta key={receta.imagen_url ?? 'sin-imagen'} imagenUrl={receta.imagen_url} alt={receta.titulo} className="hero-receta" /></header>
     <div className="contenedor"><dl className="metadatos">
@@ -38,7 +38,7 @@ export default function PaginaDetalle() {
       {receta.tiempo_coccion_min !== null && <div><dt>Cocción</dt><dd>{receta.tiempo_coccion_min} min</dd></div>}
       {receta.tiempo_total_min !== null && <div><dt>Tiempo total</dt><dd>{receta.tiempo_total_min} min</dd></div>}
     </dl>
-    {receta.etiquetas.length > 0 && <ul className="chips chips-secundarios" aria-label="Etiquetas">{receta.etiquetas.map((e) => <li key={e.slug}>{e.nombre}</li>)}</ul>}
+    {receta.etiquetas.length > 0 && <ul className="chips chips-secundarios" aria-label="Etiquetas">{receta.etiquetas.map((e) => <li key={e.slug}><span>{e.nombre}</span></li>)}</ul>}
     <div className="detalle-contenido"><section><h2>Ingredientes</h2>{receta.ingredientes.length ? <ul className="ingredientes">{receta.ingredientes.map((i) => <li key={i.posicion}>{i.texto_original || [i.cantidad, i.unidad, i.nombre].filter(Boolean).join(' ')}</li>)}</ul> : <p>No hay ingredientes disponibles.</p>}</section>
     <section><h2>Elaboración</h2>{receta.pasos.length ? <ol className="pasos">{receta.pasos.map((p) => <li key={p.numero} value={p.numero}>{p.instruccion}</li>)}</ol> : <p>No hay pasos disponibles.</p>}</section></div>
     {receta.fuente_url && <footer className="fuente"><a href={receta.fuente_url} target="_blank" rel="noreferrer">Ver receta original{receta.fuente_nombre ? ` en ${receta.fuente_nombre}` : ''} ↗</a></footer>}

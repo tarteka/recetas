@@ -21,5 +21,16 @@ h2 { line-height: 1.2; }
 .estado-pagina h2 { color: var(--texto); margin: 0; }.estado-pagina p { margin: 0 0 .8rem; }.icono-estado { display: grid; place-items: center; width: 54px; height: 54px; border-radius: 50%; background: var(--principal-suave); color: var(--principal); font-size: 1.6rem; }
 .spinner { width: 42px; height: 42px; border: 4px solid var(--borde); border-top-color: var(--principal); border-radius: 50%; animation: girar .8s linear infinite; } @keyframes girar { to { transform: rotate(360deg); } }
 .imagen-receta { width: 100%; aspect-ratio: 3 / 2; object-fit: cover; background: #e8e4da; }.imagen-placeholder { display: grid; place-items: center; color: #7f857b; font-size: 2.4rem; background: linear-gradient(145deg, #e7e2d7, #d8dfd5); }
-.chips { list-style: none; display: flex; flex-wrap: wrap; gap: .45rem; padding: 0; margin: 0; }.chips li { padding: .3rem .7rem; border-radius: 999px; color: var(--principal); background: var(--principal-suave); font-size: .78rem; font-weight: 700; }
+.chips { list-style: none; display: flex; flex-wrap: wrap; gap: .45rem; padding: 0; margin: 0; }.chips li { border-radius: 999px; color: var(--principal); background: var(--principal-suave); font-size: .78rem; font-weight: 700; }
+
+#root, .aplicacion { min-height: 100vh; }
+.aplicacion { display: flex; flex-direction: column; }
+.aplicacion > main { flex: 1; }
+.chips a, .chips span { display: block; padding: .3rem .7rem; border-radius: 999px; }
+.chips a { text-decoration: none; }
+.chips a:hover { background: #d8e6da; }
+.footer-principal { margin-top: auto; border-top: 1px solid var(--borde); background: var(--superficie); }
+.footer-principal .contenedor { min-height: 82px; display: flex; align-items: center; justify-content: center; text-align: center; }
+.footer-principal p { margin: 0; color: var(--texto-secundario); font-size: .9rem; }
+.footer-principal a { color: var(--principal); font-weight: 800; }
 .volver { display: inline-flex; align-items: center; min-height: 44px; color: var(--principal); font-weight: 700; text-decoration: none; }

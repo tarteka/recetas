@@ -1,5 +1,236 @@
-.pagina-listado { padding-block: clamp(2.5rem, 6vw, 5.5rem); }.cabecera { max-width: 720px; margin-bottom: 2rem; }.cabecera h1 { margin-bottom: 1rem; }.cabecera > p:last-child { color: var(--texto-secundario); font-size: 1.1rem; }.ceja { margin-bottom: .65rem; color: var(--principal); font-size: .8rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
-.buscador { margin-bottom: 2rem; }.buscador label { display: block; margin-bottom: .45rem; font-size: .9rem; font-weight: 700; }.buscador input { width: min(100%, 560px); min-height: 48px; padding: .7rem 1rem; border: 1px solid var(--borde); border-radius: 999px; color: var(--texto); background: var(--superficie); }
-.grid-recetas { display: grid; grid-template-columns: 1fr; gap: 1.25rem; }.tarjeta { overflow: hidden; border: 1px solid var(--borde); border-radius: var(--radio-grande); background: var(--superficie); box-shadow: 0 2px 8px rgb(38 45 35 / 4%); transition: transform .2s, box-shadow .2s; }.tarjeta:hover { transform: translateY(-3px); box-shadow: var(--sombra); }.tarjeta > a { display: block; height: 100%; text-decoration: none; border-radius: inherit; }.tarjeta__contenido { padding: 1.15rem; }.tarjeta h2 { margin: 0 0 .65rem; font-family: Georgia, serif; font-size: 1.35rem; }.tiempo { color: var(--texto-secundario); margin-bottom: .9rem; font-size: .9rem; }
-@media (min-width: 640px) { .grid-recetas { grid-template-columns: repeat(2, 1fr); } }
-@media (min-width: 1000px) { .grid-recetas { grid-template-columns: repeat(3, 1fr); gap: 1.6rem; } }
+.pagina-listado {
+  padding-block: clamp(2.5rem, 6vw, 5.5rem);
+}
+
+.cabecera {
+  max-width: 720px;
+  margin-bottom: clamp(2rem, 5vw, 3.5rem);
+}
+
+.cabecera h1 {
+  margin-bottom: 1rem;
+}
+
+.cabecera > p:last-child {
+  color: var(--texto-secundario);
+  font-size: 1.1rem;
+}
+
+.ceja {
+  margin-bottom: .65rem;
+  color: var(--principal);
+  font-size: .8rem;
+  font-weight: 800;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+
+.listado-layout {
+  display: grid;
+  gap: 1.75rem;
+  align-items: start;
+}
+
+.listado-resultados,
+.sidebar-listado {
+  min-width: 0;
+}
+
+.buscador {
+  margin-bottom: 2rem;
+}
+
+.buscador label,
+.selector-categorias h2 {
+  display: block;
+  margin-bottom: .65rem;
+  color: var(--texto);
+  font-size: .82rem;
+  font-weight: 800;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+
+.buscador input {
+  width: min(100%, 560px);
+  min-height: 48px;
+  padding: .7rem 1rem;
+  border: 1px solid var(--borde);
+  border-radius: var(--radio);
+  color: var(--texto);
+  background: var(--superficie);
+  transition: border-color .2s, box-shadow .2s;
+}
+
+.buscador input:hover {
+  border-color: #b9b6ac;
+}
+
+.buscador input:focus {
+  border-color: var(--principal);
+  box-shadow: 0 0 0 3px var(--principal-suave);
+  outline: none;
+}
+
+.selector-categorias {
+  margin-bottom: 1.5rem;
+}
+
+.selector-categorias ul {
+  display: flex;
+  gap: .55rem;
+  overflow-x: auto;
+  list-style: none;
+  margin: 0;
+  padding: 0 0 .4rem;
+  scrollbar-width: thin;
+}
+
+.selector-categorias a {
+  display: block;
+  min-height: 44px;
+  padding: .7rem 1rem;
+  border: 1px solid var(--borde);
+  border-radius: 999px;
+  background: var(--superficie);
+  text-decoration: none;
+  white-space: nowrap;
+  font-size: .9rem;
+  font-weight: 700;
+}
+
+.selector-categorias a:hover,
+.selector-categorias a[aria-current="page"] {
+  border-color: var(--principal);
+  color: white;
+  background: var(--principal);
+}
+
+.grid-recetas {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.25rem;
+}
+
+.tarjeta {
+  overflow: hidden;
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-grande);
+  background: var(--superficie);
+  box-shadow: 0 2px 8px rgb(38 45 35 / 4%);
+  transition: transform .2s, box-shadow .2s;
+}
+
+.tarjeta:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--sombra);
+}
+
+.tarjeta__principal {
+  display: block;
+  text-decoration: none;
+}
+
+.tarjeta__contenido {
+  padding: 1.15rem 1.15rem .7rem;
+}
+
+.tarjeta h2 {
+  margin: 0 0 .65rem;
+  font-family: Georgia, serif;
+  font-size: 1.35rem;
+}
+
+.tiempo {
+  margin-bottom: .9rem;
+  color: var(--texto-secundario);
+  font-size: .9rem;
+}
+
+.tarjeta__categorias {
+  position: relative;
+  padding: 0 1.15rem 1.15rem;
+}
+
+@media (min-width: 640px) {
+  .grid-recetas {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 960px) {
+  .listado-layout {
+    grid-template-columns: minmax(0, 1fr) 270px;
+    grid-template-areas: "resultados sidebar";
+    gap: clamp(2.5rem, 5vw, 4.5rem);
+  }
+
+  .listado-layout--sin-sidebar {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: "resultados";
+  }
+
+  .listado-resultados {
+    grid-area: resultados;
+  }
+
+  .sidebar-listado {
+    grid-area: sidebar;
+    position: sticky;
+    top: 2rem;
+    padding-left: clamp(1.5rem, 3vw, 2.25rem);
+    border-left: 1px solid var(--borde);
+  }
+
+  .sidebar-listado .buscador {
+    margin-bottom: 2.25rem;
+  }
+
+  .sidebar-listado .buscador input {
+    width: 100%;
+    min-height: 46px;
+    background: rgb(255 255 255 / 65%);
+  }
+
+  .sidebar-listado .selector-categorias {
+    margin-bottom: 0;
+  }
+
+  .sidebar-listado .selector-categorias ul {
+    display: grid;
+    gap: .2rem;
+    overflow: visible;
+    padding: 0;
+  }
+
+  .sidebar-listado .selector-categorias a {
+    width: 100%;
+    min-height: 40px;
+    padding: .55rem .75rem;
+    border: 0;
+    border-radius: 8px;
+    color: var(--texto-secundario);
+    background: transparent;
+    white-space: normal;
+    transition: color .15s, background-color .15s, transform .15s;
+  }
+
+  .sidebar-listado .selector-categorias a:hover {
+    color: var(--principal);
+    background: var(--principal-suave);
+    transform: translateX(2px);
+  }
+
+  .sidebar-listado .selector-categorias a[aria-current="page"] {
+    color: var(--principal);
+    background: var(--principal-suave);
+    box-shadow: inset 3px 0 0 var(--principal);
+  }
+}
+
+@media (min-width: 1180px) {
+  .grid-recetas {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem;
+  }
+}
