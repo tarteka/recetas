@@ -1,0 +1,17 @@
+:80 {
+	encode zstd gzip
+
+	handle_path /admin/* {
+		root * /srv
+
+		@assets path /assets/*
+		header @assets Cache-Control "public, max-age=31536000, immutable"
+
+		route {
+			try_files {path} /index.html
+			@documento path /index.html
+			header @documento Cache-Control "no-cache"
+			file_server
+		}
+	}
+}

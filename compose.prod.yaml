@@ -7,6 +7,12 @@ services:
       dockerfile: Dockerfile.prod
     environment:
       RECETAS_API_TOKEN: ${RECETAS_API_TOKEN:?Configura RECETAS_API_TOKEN en .env}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      ADMIN_ALLOWED_EMAILS: ${ADMIN_ALLOWED_EMAILS:-}
+      ADMIN_SESSION_SECRET: ${ADMIN_SESSION_SECRET:-}
+      ADMIN_GOOGLE_REDIRECT_URI: ${ADMIN_GOOGLE_REDIRECT_URI:-https://recetas.proyectozero.org/api/admin/auth/google/callback}
+      ADMIN_ALLOWED_ORIGINS: ${ADMIN_ALLOWED_ORIGINS:-https://recetas.proyectozero.org}
     volumes:
       - ./datos:/datos
     ports:
@@ -39,6 +45,16 @@ services:
     depends_on:
       recetas-api:
         condition: service_healthy
+      recetas-admin:
+        condition: service_started
+    restart: unless-stopped
+
+  recetas-admin:
+    build:
+      context: ./recetas-admin
+      dockerfile: Dockerfile.prod
+    networks:
+      - recetas-interna
     restart: unless-stopped
 
 networks:

@@ -464,4 +464,62 @@ Para detenerlos:
 docker compose down
 ```
 
+## Acceso administrativo con Google
+
+El panel independiente se publica bajo `/admin/` y usa Google OpenID Connect
+mediante Authorization Code Flow. La API intercambia el código y valida el ID
+token; el navegador solo recibe una cookie de sesión propia y opaca. El Bearer
+Token de OpenClaw no cambia ni sirve para iniciar sesión en el panel.
+
+La única cuenta autorizada inicialmente es `semosa@gmail.com`. La allowlist se
+comprueba en cada petición, por lo que retirar el email invalida sus sesiones.
+
+### Configurar Google Cloud
+
+Crea credenciales OAuth 2.0 de tipo **Aplicación web** y registra exactamente:
+
+- Origen autorizado: `https://recetas.proyectozero.org`
+- Callback: `https://recetas.proyectozero.org/api/admin/auth/google/callback`
+
+Para desarrollo local registra también el origen `http://localhost:5174` y el
+callback `http://localhost:5174/api/admin/auth/google/callback`. Google no
+admite comodines en la URI de redirección.
+
+Completa el `.env` del servidor sin publicar los valores:
+
+```dotenv
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+ADMIN_ALLOWED_EMAILS=semosa@gmail.com
+ADMIN_SESSION_SECRET=
+ADMIN_GOOGLE_REDIRECT_URI=https://recetas.proyectozero.org/api/admin/auth/google/callback
+ADMIN_ALLOWED_ORIGINS=https://recetas.proyectozero.org
+```
+
+Genera `ADMIN_SESSION_SECRET` con al menos 32 bytes aleatorios, por ejemplo
+`openssl rand -hex 32`. No reutilices `RECETAS_API_TOKEN`.
+
+### Endpoints y sesión
+
+- `GET /api/admin/auth/google`: inicia el login con un `state` de un solo uso.
+- `GET /api/admin/auth/google/callback`: valida el callback y crea la sesión.
+- `GET /api/admin/me`: devuelve la identidad mínima autenticada.
+- `POST /api/admin/logout`: revoca la sesión y elimina la cookie.
+
+Las sesiones se guardan en SQLite con el identificador hasheado. La cookie
+`recetas_admin_session` es `HttpOnly`, `SameSite=Lax`, `Secure` en
+producción, usa la ruta `/` y caduca a las 12 horas. Las peticiones mutables
+también validan `Origin` contra `ADMIN_ALLOWED_ORIGINS`.
+
+No reconstruyas producción hasta configurar las credenciales reales. Después:
+
+```bash
+sudo docker compose -f compose.prod.yaml config -q
+sudo docker compose -f compose.prod.yaml build
+sudo docker compose -f compose.prod.yaml up -d
+```
+
+Comprueba `https://recetas.proyectozero.org/admin/` en una ventana privada.
+Una cuenta distinta de `semosa@gmail.com` debe ser rechazada sin crear sesión.
+
 Los datos persistentes no se eliminan al recrear los contenedores.

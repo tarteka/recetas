@@ -23,7 +23,10 @@ function valorFiltro(filter: Record<string, unknown>, nombre: string): string | 
 }
 
 async function solicitarJson(url: string): Promise<unknown> {
-  const response = await fetch(url, { headers: { Accept: 'application/json' } });
+  const response = await fetch(url, {
+    credentials: 'include',
+    headers: { Accept: 'application/json' },
+  });
   if (!response.ok) {
     throw new HttpError('No se pudo completar la petición', response.status);
   }

@@ -55,7 +55,7 @@ body {
   margin: 0 0 16px;
   max-width: 100%;
   font-family: Georgia, serif;
-  font-size: clamp(1.25rem, 7vw, 2.4rem);
+  font-size: clamp(1.25rem, 7vw, 3rem);
   line-height: 1.05;
   white-space: nowrap;
 }

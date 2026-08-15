@@ -2,11 +2,18 @@
 
 declare(strict_types=1);
 
+use App\Auth\GoogleOidcClient;
+use App\Config\AdminAuthConfig;
+use App\Controller\AdminAuthController;
 use App\Controller\ImagenController;
 use App\Controller\RecetaController;
 use App\Database;
+use App\Middleware\AdminCsrfMiddleware;
+use App\Middleware\AdminSessionMiddleware;
 use App\Middleware\ApiTokenMiddleware;
+use App\Repository\AdminSessionRepository;
 use App\Repository\RecetaRepository;
+use App\Service\AdminSessionService;
 use App\Service\ImagenService;
 use Slim\App;
 use Slim\Factory\AppFactory;
@@ -17,20 +24,36 @@ $app = AppFactory::create();
 $app->addRoutingMiddleware();
 $app->addErrorMiddleware(false, true, true);
 
-$repository = new RecetaRepository(Database::conectar());
+$pdo = Database::conectar();
+$repository = new RecetaRepository($pdo);
 $recetaController = new RecetaController($repository);
 $imagenController = new ImagenController(
     $repository,
     new ImagenService()
 );
 $apiTokenMiddleware = new ApiTokenMiddleware();
+$adminConfig = new AdminAuthConfig();
+$adminSessions = new AdminSessionService(
+    new AdminSessionRepository($pdo),
+    $adminConfig
+);
+$adminAuthController = new AdminAuthController(
+    $adminConfig,
+    new GoogleOidcClient($adminConfig),
+    $adminSessions
+);
+$adminSessionMiddleware = new AdminSessionMiddleware($adminSessions);
+$adminCsrfMiddleware = new AdminCsrfMiddleware($adminConfig);
 
 /**
  * @var callable(
  *     App,
  *     RecetaController,
  *     ImagenController,
- *     ApiTokenMiddleware
+ *     ApiTokenMiddleware,
+ *     AdminAuthController,
+ *     AdminSessionMiddleware,
+ *     AdminCsrfMiddleware
  * ): void $registrarRutas
  */
 $registrarRutas = require __DIR__ . '/../routes/api.php';
@@ -38,7 +61,10 @@ $registrarRutas(
     $app,
     $recetaController,
     $imagenController,
-    $apiTokenMiddleware
+    $apiTokenMiddleware,
+    $adminAuthController,
+    $adminSessionMiddleware,
+    $adminCsrfMiddleware
 );
 
 return $app;

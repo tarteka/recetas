@@ -126,3 +126,28 @@ CREATE INDEX IF NOT EXISTS idx_receta_categorias_categoria
 
 CREATE INDEX IF NOT EXISTS idx_receta_etiquetas_etiqueta
     ON receta_etiquetas(etiqueta_id);
+
+-- Sesiones propias del panel administrativo. El identificador recibido en la
+-- cookie nunca se persiste en texto plano.
+CREATE TABLE IF NOT EXISTS admin_sessions (
+    id_hash TEXT PRIMARY KEY,
+    google_subject TEXT NOT NULL,
+    email TEXT NOT NULL,
+    nombre TEXT,
+    avatar_url TEXT,
+    created_at INTEGER NOT NULL,
+    expires_at INTEGER NOT NULL,
+    last_seen_at INTEGER NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_admin_sessions_expires_at
+    ON admin_sessions(expires_at);
+
+-- Estados OIDC de un solo uso para impedir login CSRF y callbacks repetidos.
+CREATE TABLE IF NOT EXISTS admin_auth_states (
+    state_hash TEXT PRIMARY KEY,
+    expires_at INTEGER NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_admin_auth_states_expires_at
+    ON admin_auth_states(expires_at);

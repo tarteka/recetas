@@ -1,7 +1,11 @@
 {
+    "name": "tarteka/recetas-api",
+    "description": "API REST del proyecto Recetario",
+    "license": "proprietary",
     "require": {
         "slim/slim": "^4.0",
-        "slim/psr7": "^1.7"
+        "slim/psr7": "^1.7",
+        "google/apiclient": "^2.19"
     },
     "autoload": {
         "psr-4": {
