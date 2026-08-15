@@ -34,26 +34,126 @@ final class RecetaRepository
         return $statement->rowCount() > 0;
     }
 
-    public function listar(): array
+    public function listar(
+        int $pagina,
+        int $porPagina,
+        ?string $buscar,
+        ?string $categoria,
+        ?string $etiqueta
+    ): array {
+        $condiciones = [];
+        $parametros = [];
+
+        if ($buscar !== null) {
+            $condiciones[] = '(r.titulo LIKE :buscar OR r.descripcion LIKE :buscar)';
+            $parametros['buscar'] = '%' . $buscar . '%';
+        }
+        if ($categoria !== null) {
+            $condiciones[] = 'EXISTS (
+                SELECT 1 FROM receta_categorias rc
+                INNER JOIN categorias c ON c.id = rc.categoria_id
+                WHERE rc.receta_id = r.id AND c.slug = :categoria
+            )';
+            $parametros['categoria'] = $categoria;
+        }
+        if ($etiqueta !== null) {
+            $condiciones[] = 'EXISTS (
+                SELECT 1 FROM receta_etiquetas re
+                INNER JOIN etiquetas e ON e.id = re.etiqueta_id
+                WHERE re.receta_id = r.id AND e.slug = :etiqueta
+            )';
+            $parametros['etiqueta'] = $etiqueta;
+        }
+
+        $where = $condiciones === []
+            ? ''
+            : ' WHERE ' . implode(' AND ', $condiciones);
+
+        $statement = $this->pdo->prepare(
+            'SELECT COUNT(*) FROM recetas r' . $where
+        );
+        $statement->execute($parametros);
+        $total = (int) $statement->fetchColumn();
+        $totalPaginas = max(1, (int) ceil($total / $porPagina));
+        $pagina = min($pagina, $totalPaginas);
+
+        $statement = $this->pdo->prepare(
+            'SELECT
+                r.id,
+                r.titulo,
+                r.descripcion,
+                r.imagen_url,
+                r.fuente_nombre,
+                r.raciones,
+                r.tiempo_total_min,
+                r.creado_en
+            FROM recetas r' . $where . '
+            ORDER BY r.creado_en DESC, r.id DESC
+            LIMIT :limite OFFSET :desplazamiento'
+        );
+        foreach ($parametros as $nombre => $valor) {
+            $statement->bindValue(':' . $nombre, $valor, PDO::PARAM_STR);
+        }
+        $statement->bindValue(':limite', $porPagina, PDO::PARAM_INT);
+        $statement->bindValue(
+            ':desplazamiento',
+            ($pagina - 1) * $porPagina,
+            PDO::PARAM_INT
+        );
+        $statement->execute();
+        $recetas = $statement->fetchAll();
+
+        $this->incorporarTaxonomias($recetas);
+
+        return [
+            'datos' => $recetas,
+            'paginacion' => [
+                'pagina' => $pagina,
+                'por_pagina' => $porPagina,
+                'total' => $total,
+                'total_paginas' => $totalPaginas,
+            ],
+        ];
+    }
+
+    public function listarCategorias(): array
     {
         $statement = $this->pdo->query(
             'SELECT
-                id,
-                titulo,
-                descripcion,
-                imagen_url,
-                fuente_nombre,
-                raciones,
-                tiempo_total_min,
-                creado_en
-            FROM recetas
-            ORDER BY creado_en DESC, id DESC'
+                c.nombre,
+                c.slug,
+                COUNT(rc.receta_id) AS total_recetas
+            FROM categorias c
+            LEFT JOIN receta_categorias rc ON rc.categoria_id = c.id
+            GROUP BY c.id, c.nombre, c.slug
+            HAVING COUNT(rc.receta_id) > 0
+            ORDER BY c.nombre'
         );
 
-        $recetas = $statement->fetchAll();
+        return $statement->fetchAll();
+    }
 
+    public function listarEtiquetas(): array
+    {
+        $statement = $this->pdo->query(
+            'SELECT
+                e.nombre,
+                e.slug,
+                COUNT(re.receta_id) AS total_recetas
+            FROM etiquetas e
+            LEFT JOIN receta_etiquetas re ON re.etiqueta_id = e.id
+            GROUP BY e.id, e.nombre, e.slug
+            HAVING COUNT(re.receta_id) > 0
+            ORDER BY e.nombre'
+        );
+
+        return $statement->fetchAll();
+    }
+
+    private function incorporarTaxonomias(array &$recetas): void
+    {
         if ($recetas === []) {
-            return [];
+            return;
         }
 
         $recetasPorId = [];
@@ -63,7 +163,12 @@ final class RecetaRepository
             $recetasPorId[(int) $receta['id']] = $indice;
         }
 
-        $marcadores = implode(',', array_fill(0, count($recetas), '?'));
+        $ids = array_map(
+            static fn(array $receta): int => (int) $receta['id'],
+            $recetas
+        );
+        $marcadores = implode(',', array_fill(0, count($ids), '?'));
+
         $statement = $this->pdo->prepare(
             'SELECT rc.receta_id, c.nombre, c.slug
             FROM receta_categorias rc
@@ -71,11 +176,7 @@ final class RecetaRepository
             WHERE rc.receta_id IN (' . $marcadores . ')
             ORDER BY c.nombre'
         );
-        $statement->execute(array_map(
-            static fn(array $receta): int => (int) $receta['id'],
-            $recetas
-        ));
-
+        $statement->execute($ids);
         foreach ($statement->fetchAll() as $categoria) {
             $indice = $recetasPorId[(int) $categoria['receta_id']];
             $recetas[$indice]['categorias'][] = [
@@ -91,11 +192,7 @@ final class RecetaRepository
             WHERE re.receta_id IN (' . $marcadores . ')
             ORDER BY e.nombre'
         );
-        $statement->execute(array_map(
-            static fn(array $receta): int => (int) $receta['id'],
-            $recetas
-        ));
-
+        $statement->execute($ids);
         foreach ($statement->fetchAll() as $etiqueta) {
             $indice = $recetasPorId[(int) $etiqueta['receta_id']];
             $recetas[$indice]['etiquetas'][] = [
@@ -103,8 +200,6 @@ final class RecetaRepository
                 'slug' => $etiqueta['slug'],
             ];
         }
-
-        return $recetas;
     }
 
     public function obtenerPorId(int $id): ?array

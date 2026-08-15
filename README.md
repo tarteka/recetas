@@ -95,8 +95,26 @@ GET /salud
 ### Listar recetas
 
 ```http
-GET /recetas
+GET /recetas?pagina=1&por_pagina=9&buscar=arroz&categoria=postres&etiqueta=sin-horno
 ```
+
+La respuesta contiene `datos` con las recetas de la página y un objeto `paginacion` con `pagina`, `por_pagina`, `total` y `total_paginas`. Todos los parámetros salvo la página y el tamaño son opcionales.
+
+### Listar categorías
+
+```http
+GET /categorias
+```
+
+Devuelve las categorías con su número total de recetas.
+
+### Listar etiquetas
+
+```http
+GET /etiquetas
+```
+
+Devuelve las etiquetas con su número total de recetas.
 
 ### Obtener una receta
 

@@ -1,3 +1,12 @@
+export interface CategoriaReceta { nombre: string; slug: string }
+export interface EtiquetaReceta { nombre: string; slug: string }
+
+export interface TaxonomiaResumen {
+  nombre: string;
+  slug: string;
+  total_recetas: number;
+}
+
 export interface RecetaResumen {
   id: number;
   titulo: string;
@@ -20,21 +29,7 @@ export interface IngredienteReceta {
   posicion: number;
 }
 
-export interface PasoReceta {
-  numero: number;
-  instruccion: string;
-  imagen_url: string | null;
-}
-
-export interface CategoriaReceta {
-  nombre: string;
-  slug: string;
-}
-
-export interface EtiquetaReceta {
-  nombre: string;
-  slug: string;
-}
+export interface PasoReceta { numero: number; instruccion: string; imagen_url: string | null }
 
 export interface RecetaDetalle {
   id: number;
@@ -55,37 +50,56 @@ export interface RecetaDetalle {
   etiquetas: EtiquetaReceta[];
 }
 
-/**
- * Obtiene el listado resumido de recetas.
- */
+export interface Paginacion {
+  pagina: number;
+  por_pagina: number;
+  total: number;
+  total_paginas: number;
+}
+
+export interface RespuestaRecetas { datos: RecetaResumen[]; paginacion: Paginacion }
+
+export interface ParametrosRecetas {
+  pagina: number;
+  porPagina: number;
+  buscar?: string;
+  categoria?: string;
+  etiqueta?: string;
+}
+
 export class ErrorApi extends Error {
   readonly status: number;
-
-  constructor(message: string, status: number) {
-    super(message);
-    this.status = status;
-  }
+  constructor(message: string, status: number) { super(message); this.status = status; }
 }
 
-export async function obtenerRecetas(): Promise<RecetaResumen[]> {
-  const respuesta = await fetch('/api/recetas');
+export async function obtenerRecetas(parametros: ParametrosRecetas, signal?: AbortSignal): Promise<RespuestaRecetas> {
+  const query = new URLSearchParams({
+    pagina: String(parametros.pagina),
+    por_pagina: String(parametros.porPagina),
+  });
+  if (parametros.buscar) query.set('buscar', parametros.buscar);
+  if (parametros.categoria) query.set('categoria', parametros.categoria);
+  if (parametros.etiqueta) query.set('etiqueta', parametros.etiqueta);
 
-  if (!respuesta.ok) {
-    throw new ErrorApi('No se pudieron cargar las recetas', respuesta.status);
-  }
-
-  return respuesta.json() as Promise<RecetaResumen[]>;
+  const respuesta = await fetch(`/api/recetas?${query}`, { signal });
+  if (!respuesta.ok) throw new ErrorApi('No se pudieron cargar las recetas', respuesta.status);
+  return respuesta.json() as Promise<RespuestaRecetas>;
 }
 
-/**
- * Obtiene todos los datos de una receta concreta.
- */
+export async function obtenerCategorias(signal?: AbortSignal): Promise<TaxonomiaResumen[]> {
+  const respuesta = await fetch('/api/categorias', { signal });
+  if (!respuesta.ok) throw new ErrorApi('No se pudieron cargar las categorías', respuesta.status);
+  return respuesta.json() as Promise<TaxonomiaResumen[]>;
+}
+
+export async function obtenerEtiquetas(signal?: AbortSignal): Promise<TaxonomiaResumen[]> {
+  const respuesta = await fetch('/api/etiquetas', { signal });
+  if (!respuesta.ok) throw new ErrorApi('No se pudieron cargar las etiquetas', respuesta.status);
+  return respuesta.json() as Promise<TaxonomiaResumen[]>;
+}
+
 export async function obtenerReceta(id: number): Promise<RecetaDetalle> {
   const respuesta = await fetch(`/api/recetas/${id}`);
-
-  if (!respuesta.ok) {
-    throw new ErrorApi('No se pudo cargar la receta', respuesta.status);
-  }
-
+  if (!respuesta.ok) throw new ErrorApi('No se pudo cargar la receta', respuesta.status);
   return respuesta.json() as Promise<RecetaDetalle>;
 }

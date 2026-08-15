@@ -31,17 +31,48 @@ final class RecetaController
     }
 
     /**
-     * Devuelve todas las recetas.
+     * Devuelve una página de recetas aplicando búsqueda y filtros opcionales.
      */
     public function listar(
         ServerRequestInterface $request,
         ResponseInterface $response
     ): ResponseInterface {
-        $recetas = $this->repository->listar();
+        $query = $request->getQueryParams();
+        $pagina = max(1, (int) ($query['pagina'] ?? 1));
+        $porPagina = min(48, max(1, (int) ($query['por_pagina'] ?? 9)));
+        $buscar = $this->parametroOpcional($query, 'buscar');
+        $categoria = $this->parametroOpcional($query, 'categoria');
+        $etiqueta = $this->parametroOpcional($query, 'etiqueta');
 
         return $this->json(
             $response,
-            $recetas
+            $this->repository->listar(
+                $pagina,
+                $porPagina,
+                $buscar,
+                $categoria,
+                $etiqueta
+            )
+        );
+    }
+
+    public function listarCategorias(
+        ServerRequestInterface $request,
+        ResponseInterface $response
+    ): ResponseInterface {
+        return $this->json(
+            $response,
+            $this->repository->listarCategorias()
+        );
+    }
+
+    public function listarEtiquetas(
+        ServerRequestInterface $request,
+        ResponseInterface $response
+    ): ResponseInterface {
+        return $this->json(
+            $response,
+            $this->repository->listarEtiquetas()
         );
     }
 
@@ -118,6 +149,13 @@ final class RecetaController
             ['id' => $id],
             201
         );
+    }
+
+    private function parametroOpcional(array $query, string $nombre): ?string
+    {
+        $valor = trim((string) ($query[$nombre] ?? ''));
+
+        return $valor === '' ? null : $valor;
     }
 
     /**

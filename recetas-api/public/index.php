@@ -37,11 +37,26 @@ $app->get(
     $controller->salud($request, $response)
 );
 
-// Devuelve todas las recetas.
+// Devuelve una página de recetas.
+
 $app->get(
     '/recetas',
     fn($request, $response) =>
     $controller->listar($request, $response)
+);
+
+// Devuelve las categorías disponibles con su número de recetas.
+$app->get(
+    '/categorias',
+    fn($request, $response) =>
+    $controller->listarCategorias($request, $response)
+);
+
+// Devuelve las etiquetas disponibles con su número de recetas.
+$app->get(
+    '/etiquetas',
+    fn($request, $response) =>
+    $controller->listarEtiquetas($request, $response)
 );
 
 // Actualiza la imagen de una receta mediante su identificador.

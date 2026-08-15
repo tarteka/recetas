@@ -1,79 +1,86 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { obtenerRecetas, type CategoriaReceta, type RecetaResumen } from '../api/recetas';
+import { obtenerCategorias, obtenerEtiquetas, obtenerRecetas, type RespuestaRecetas, type TaxonomiaResumen } from '../api/recetas';
 import BuscadorRecetas from '../components/BuscadorRecetas';
 import EstadoPagina from '../components/EstadoPagina';
 import ListaRecetas from '../components/ListaRecetas';
-import NubeEtiquetas, { type EtiquetaFrecuente } from '../components/NubeEtiquetas';
+import NubeEtiquetas, { type EtiquetaNube } from '../components/NubeEtiquetas';
+import PaginacionRecetas from '../components/PaginacionRecetas';
 import SelectorCategorias from '../components/SelectorCategorias';
 
+const RECETAS_POR_PAGINA = 9;
+interface ResultadoCargado { clave: string; respuesta: RespuestaRecetas }
+
 export default function PaginaListado() {
-  const [parametros] = useSearchParams();
+  const [parametros, setParametros] = useSearchParams();
   const categoriaActiva = parametros.get('categoria');
   const etiquetaActiva = parametros.get('etiqueta');
-  const [recetas, setRecetas] = useState<RecetaResumen[]>([]);
-  const [busqueda, setBusqueda] = useState('');
-  const [estado, setEstado] = useState<'cargando' | 'error' | 'listo'>('cargando');
+  const buscar = parametros.get('buscar') ?? '';
+  const paginaSolicitada = Number.parseInt(parametros.get('pagina') ?? '1', 10);
+  const pagina = Number.isInteger(paginaSolicitada) && paginaSolicitada > 0 ? paginaSolicitada : 1;
+  const claveConsulta = `${pagina}|${buscar}|${categoriaActiva ?? ''}|${etiquetaActiva ?? ''}`;
+  const [resultado, setResultado] = useState<ResultadoCargado | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [categorias, setCategorias] = useState<TaxonomiaResumen[]>([]);
+  const [etiquetasBase, setEtiquetasBase] = useState<TaxonomiaResumen[]>([]);
   const [intento, setIntento] = useState(0);
 
   useEffect(() => {
-    let activo = true;
-    obtenerRecetas().then((datos) => { if (activo) { setRecetas(datos); setEstado('listo'); } })
-      .catch(() => { if (activo) setEstado('error'); });
-    return () => { activo = false; };
-  }, [intento]);
+    const controlador = new AbortController();
+    Promise.all([obtenerCategorias(controlador.signal), obtenerEtiquetas(controlador.signal)])
+      .then(([nuevasCategorias, nuevasEtiquetas]) => { setCategorias(nuevasCategorias); setEtiquetasBase(nuevasEtiquetas); })
+      .catch(() => { if (!controlador.signal.aborted) { setCategorias([]); setEtiquetasBase([]); } });
+    return () => controlador.abort();
+  }, []);
 
-  const categorias = useMemo(() => {
-    const unicas = new Map<string, CategoriaReceta>();
-    recetas.forEach((receta) => receta.categorias.forEach((categoria) => unicas.set(categoria.slug, categoria)));
-    return [...unicas.values()].sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
-  }, [recetas]);
+  useEffect(() => {
+    const controlador = new AbortController();
+    obtenerRecetas({ pagina, porPagina: RECETAS_POR_PAGINA, buscar: buscar.trim() || undefined, categoria: categoriaActiva ?? undefined, etiqueta: etiquetaActiva ?? undefined }, controlador.signal)
+      .then((respuesta) => { setResultado({ clave: claveConsulta, respuesta }); setError(null); })
+      .catch(() => { if (!controlador.signal.aborted) setError(claveConsulta); });
+    return () => controlador.abort();
+  }, [buscar, categoriaActiva, claveConsulta, etiquetaActiva, intento, pagina]);
 
-  const etiquetas = useMemo<EtiquetaFrecuente[]>(() => {
-    const frecuencias = new Map<string, EtiquetaFrecuente>();
-    recetas.forEach((receta) => receta.etiquetas.forEach((etiqueta) => {
-      const existente = frecuencias.get(etiqueta.slug);
-      frecuencias.set(etiqueta.slug, { ...etiqueta, frecuencia: (existente?.frecuencia ?? 0) + 1, nivel: 0 });
+  const etiquetas = useMemo<EtiquetaNube[]>(() => {
+    if (etiquetasBase.length === 0) return [];
+    const minimo = Math.min(...etiquetasBase.map((etiqueta) => etiqueta.total_recetas));
+    const maximo = Math.max(...etiquetasBase.map((etiqueta) => etiqueta.total_recetas));
+    return etiquetasBase.map((etiqueta) => ({
+      ...etiqueta,
+      nivel: maximo === minimo
+        ? [...etiqueta.slug].reduce((total, caracter) => total + caracter.charCodeAt(0), 0) % 5
+        : Math.round(((etiqueta.total_recetas - minimo) / (maximo - minimo)) * 4),
     }));
+  }, [etiquetasBase]);
 
-    const valores = [...frecuencias.values()];
-    const minimo = Math.min(...valores.map((etiqueta) => etiqueta.frecuencia));
-    const maximo = Math.max(...valores.map((etiqueta) => etiqueta.frecuencia));
-    return valores.map((etiqueta) => {
-      const variacionEstable = [...etiqueta.slug].reduce((total, caracter) => total + caracter.charCodeAt(0), 0) % 5;
-      return {
-        ...etiqueta,
-        nivel: maximo === minimo ? variacionEstable : Math.round(((etiqueta.frecuencia - minimo) / (maximo - minimo)) * 4),
-      };
-    }).sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
-  }, [recetas]);
+  const actualizarBusqueda = useCallback((valor: string) => {
+    setParametros((actuales) => {
+      const siguientes = new URLSearchParams(actuales);
+      siguientes.delete('pagina');
+      const termino = valor.trim();
+      if (termino) siguientes.set('buscar', termino); else siguientes.delete('buscar');
+      return siguientes;
+    }, { replace: true });
+  }, [setParametros]);
 
-  const filtradas = useMemo(() => {
-    const termino = busqueda.trim().toLocaleLowerCase('es');
-    return recetas.filter((receta) => {
-      const coincideCategoria = categoriaActiva === null || receta.categorias.some((categoria) => categoria.slug === categoriaActiva);
-      const coincideEtiqueta = etiquetaActiva === null || receta.etiquetas.some((etiqueta) => etiqueta.slug === etiquetaActiva);
-      const coincideTexto = termino === '' || `${receta.titulo} ${receta.descripcion ?? ''}`.toLocaleLowerCase('es').includes(termino);
-      return coincideCategoria && coincideEtiqueta && coincideTexto;
-    });
-  }, [busqueda, categoriaActiva, etiquetaActiva, recetas]);
-
-  const mostrarControles = estado === 'listo' && recetas.length > 0;
+  const cargando = resultado?.clave !== claveConsulta && error !== claveConsulta;
+  const respuesta = resultado?.clave === claveConsulta ? resultado.respuesta : null;
+  const mostrarControles = categorias.length > 0 || etiquetas.length > 0 || respuesta !== null;
 
   return <main className="contenedor pagina-listado">
     <header className="cabecera"><p className="ceja">By Sergio Moreno</p><h1>Mi Recetario</h1><p>Un compendio de mis recetas favoritas.</p></header>
     <div className={`listado-layout${mostrarControles ? '' : ' listado-layout--sin-sidebar'}`}>
       {mostrarControles && <aside className="sidebar-listado" aria-label="Buscar y filtrar recetas">
-        <BuscadorRecetas valor={busqueda} onChange={setBusqueda} />
-        <SelectorCategorias categorias={categorias} categoriaActiva={categoriaActiva} />
-        <NubeEtiquetas etiquetas={etiquetas} etiquetaActiva={etiquetaActiva} categoriaActiva={categoriaActiva} />
+        <BuscadorRecetas key={buscar} valorInicial={buscar} onBuscar={actualizarBusqueda} />
+        <SelectorCategorias categorias={categorias} categoriaActiva={categoriaActiva} parametros={parametros} />
+        <NubeEtiquetas etiquetas={etiquetas} etiquetaActiva={etiquetaActiva} parametros={parametros} />
       </aside>}
-      <div className="listado-resultados">
-        {estado === 'cargando' ? <EstadoPagina titulo="Cargando recetas" descripcion="Estamos preparando tu recetario." cargando />
-          : estado === 'error' ? <EstadoPagina titulo="No pudimos cargar las recetas" descripcion="Comprueba la conexión e inténtalo de nuevo." icono={<span className="icono-estado">!</span>} onReintentar={() => { setEstado('cargando'); setIntento((n) => n + 1); }} />
-          : recetas.length === 0 ? <EstadoPagina titulo="Tu recetario está vacío" descripcion="Cuando añadas recetas aparecerán aquí." icono={<span className="icono-estado">◇</span>} />
-          : filtradas.length === 0 ? <EstadoPagina titulo="No hay resultados" descripcion="No encontramos recetas con los criterios seleccionados." icono={<span className="icono-estado">⌕</span>} />
-          : <ListaRecetas recetas={filtradas} />}
+      <div className="listado-resultados" aria-busy={cargando}>
+        {cargando ? <EstadoPagina titulo="Cargando recetas" descripcion="Estamos preparando esta página." cargando />
+          : error === claveConsulta ? <EstadoPagina titulo="No pudimos cargar las recetas" descripcion="Comprueba la conexión e inténtalo de nuevo." icono={<span className="icono-estado">!</span>} onReintentar={() => { setError(null); setIntento((n) => n + 1); }} />
+          : respuesta?.paginacion.total === 0 && !buscar && !categoriaActiva && !etiquetaActiva ? <EstadoPagina titulo="Tu recetario está vacío" descripcion="Cuando añadas recetas aparecerán aquí." icono={<span className="icono-estado">◇</span>} />
+          : respuesta?.datos.length === 0 ? <EstadoPagina titulo="No hay resultados" descripcion="No encontramos recetas con los criterios seleccionados." icono={<span className="icono-estado">⌕</span>} />
+          : respuesta && <><p className="resumen-resultados">{respuesta.paginacion.total} {respuesta.paginacion.total === 1 ? 'receta' : 'recetas'}</p><ListaRecetas recetas={respuesta.datos} /><PaginacionRecetas paginacion={respuesta.paginacion} parametros={parametros} /></>}
       </div>
     </div>
   </main>;
