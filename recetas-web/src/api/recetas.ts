@@ -7,6 +7,7 @@ export interface RecetaResumen {
   raciones: number | null;
   tiempo_total_min: number | null;
   creado_en: string;
+  categorias: CategoriaReceta[];
 }
 
 export interface IngredienteReceta {
@@ -56,11 +57,20 @@ export interface RecetaDetalle {
 /**
  * Obtiene el listado resumido de recetas.
  */
+export class ErrorApi extends Error {
+  readonly status: number;
+
+  constructor(message: string, status: number) {
+    super(message);
+    this.status = status;
+  }
+}
+
 export async function obtenerRecetas(): Promise<RecetaResumen[]> {
   const respuesta = await fetch('/api/recetas');
 
   if (!respuesta.ok) {
-    throw new Error('No se pudieron cargar las recetas');
+    throw new ErrorApi('No se pudieron cargar las recetas', respuesta.status);
   }
 
   return respuesta.json() as Promise<RecetaResumen[]>;
@@ -73,7 +83,7 @@ export async function obtenerReceta(id: number): Promise<RecetaDetalle> {
   const respuesta = await fetch(`/api/recetas/${id}`);
 
   if (!respuesta.ok) {
-    throw new Error('No se pudo cargar la receta');
+    throw new ErrorApi('No se pudo cargar la receta', respuesta.status);
   }
 
   return respuesta.json() as Promise<RecetaDetalle>;

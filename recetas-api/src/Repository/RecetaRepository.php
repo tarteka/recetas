@@ -36,7 +36,6 @@ final class RecetaRepository
 
     public function listar(): array
     {
-        // Devuelve las recetas ordenadas desde la más reciente.
         $statement = $this->pdo->query(
             'SELECT
                 id,
@@ -51,7 +50,40 @@ final class RecetaRepository
             ORDER BY creado_en DESC, id DESC'
         );
 
-        return $statement->fetchAll();
+        $recetas = $statement->fetchAll();
+
+        if ($recetas === []) {
+            return [];
+        }
+
+        $recetasPorId = [];
+        foreach ($recetas as $indice => $receta) {
+            $recetas[$indice]['categorias'] = [];
+            $recetasPorId[(int) $receta['id']] = $indice;
+        }
+
+        $marcadores = implode(',', array_fill(0, count($recetas), '?'));
+        $statement = $this->pdo->prepare(
+            'SELECT rc.receta_id, c.nombre, c.slug
+            FROM receta_categorias rc
+            INNER JOIN categorias c ON c.id = rc.categoria_id
+            WHERE rc.receta_id IN (' . $marcadores . ')
+            ORDER BY c.nombre'
+        );
+        $statement->execute(array_map(
+            static fn(array $receta): int => (int) $receta['id'],
+            $recetas
+        ));
+
+        foreach ($statement->fetchAll() as $categoria) {
+            $indice = $recetasPorId[(int) $categoria['receta_id']];
+            $recetas[$indice]['categorias'][] = [
+                'nombre' => $categoria['nombre'],
+                'slug' => $categoria['slug'],
+            ];
+        }
+
+        return $recetas;
     }
 
     public function obtenerPorId(int $id): ?array
