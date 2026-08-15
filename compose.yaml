@@ -1,0 +1,47 @@
+services:
+  recetas-api:
+    build:
+      context: ./recetas-api
+
+    container_name: recetas-api
+
+    volumes:
+      - ./recetas-api:/app
+      - ./datos:/datos
+
+    working_dir: /app
+
+    ports:
+      - "127.0.0.1:8080:8080"
+
+    networks:
+      - recetas-interna
+
+    environment:
+      COMPOSER_HOME: /tmp/composer
+      RECETAS_API_TOKEN: ${RECETAS_API_TOKEN}
+
+    restart: unless-stopped
+
+  recetas-web:
+    build:
+      context: ./recetas-web
+
+    container_name: recetas-web
+
+    volumes:
+      - ./recetas-web:/app
+
+    working_dir: /app
+
+    ports:
+      - "127.0.0.1:5173:5173"
+
+    networks:
+      - recetas-interna
+
+    restart: unless-stopped
+
+networks:
+  recetas-interna:
+    driver: bridge

@@ -1,0 +1,18 @@
+# Secretos
+.env
+
+# PHP
+recetas-api/vendor/
+
+# React / Node
+recetas-web/node_modules/
+recetas-web/dist/
+
+# Base de datos
+datos/
+*.sqlite
+*.sqlite3
+
+# IDE / sistema
+.vscode/
+.DS_Store
