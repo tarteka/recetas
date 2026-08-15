@@ -318,6 +318,16 @@ final class RecetaRepository
         return $statement->rowCount() > 0;
     }
 
+    public function eliminarArchivada(int $id): bool
+    {
+        $statement = $this->pdo->prepare(
+            'DELETE FROM recetas WHERE id = :id AND archivada_en IS NOT NULL'
+        );
+        $statement->execute(['id' => $id]);
+
+        return $statement->rowCount() > 0;
+    }
+
     public function crear(array $datos): int
     {
         // Guarda una receta completa de forma atómica.

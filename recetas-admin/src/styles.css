@@ -496,6 +496,10 @@ body {
     margin-right: 0;
   }
 
+  .editor-receta .editor-receta__toolbar > .editor-receta__eliminar {
+    grid-column: 1 / -1;
+  }
+
   .editor-receta .editor-receta__toolbar {
     position: static !important;
     z-index: auto;

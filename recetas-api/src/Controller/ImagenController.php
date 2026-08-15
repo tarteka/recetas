@@ -129,6 +129,43 @@ final class ImagenController
         return $this->json($response, ['imagen_url' => null]);
     }
 
+    public function eliminarReceta(
+        ServerRequestInterface $request,
+        ResponseInterface $response,
+        array $args
+    ): ResponseInterface {
+        $id = filter_var(
+            $args['id'] ?? null,
+            FILTER_VALIDATE_INT,
+            ['options' => ['min_range' => 1]]
+        );
+        if ($id === false) {
+            return $this->json($response, ['error' => 'Identificador de receta no válido'], 400);
+        }
+
+        $receta = $this->repository->obtenerPorId((int) $id, true);
+        if ($receta === null) {
+            return $this->json($response, ['error' => 'Receta no encontrada'], 404);
+        }
+        if (($receta['archivada_en'] ?? null) === null) {
+            return $this->json($response, ['error' => 'La receta debe archivarse antes de eliminarla'], 409);
+        }
+        if (!$this->repository->eliminarArchivada((int) $id)) {
+            return $this->json($response, ['error' => 'No se pudo eliminar la receta'], 409);
+        }
+
+        $imagenAnterior = $receta['imagen_url'] ?? null;
+        if (is_string($imagenAnterior) && !$this->repository->imagenEnUso($imagenAnterior)) {
+            try {
+                $this->imagenService->eliminar($imagenAnterior);
+            } catch (RuntimeException $exception) {
+                error_log($exception->getMessage());
+            }
+        }
+
+        return $this->json($response, ['eliminada' => true, 'id' => (int) $id]);
+    }
+
     public function mostrar(
         ServerRequestInterface $request,
         ResponseInterface $response,

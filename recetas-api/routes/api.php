@@ -65,6 +65,9 @@ return static function (
     $app->post('/admin/recetas/{id:[0-9]+}/restaurar', [$recetaController, 'restaurar'])
         ->add($adminCsrfMiddleware)
         ->add($adminSessionMiddleware);
+    $app->delete('/admin/recetas/{id:[0-9]+}/definitiva', [$imagenController, 'eliminarReceta'])
+        ->add($adminCsrfMiddleware)
+        ->add($adminSessionMiddleware);
 
     $app->post('/admin/logout', [$adminAuthController, 'logout'])
         ->add($adminCsrfMiddleware)

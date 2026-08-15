@@ -107,4 +107,18 @@ comprobar($repository->imagenEnUso($imagenPrueba), 'No detectó una imagen en us
 comprobar($repository->actualizarImagen($id, null), 'No eliminó la referencia a la imagen');
 comprobar(!$repository->imagenEnUso($imagenPrueba), 'Mantuvo la imagen como utilizada');
 
+$idEliminable = $repository->crear([
+    'titulo' => 'Receta eliminable',
+    'ingredientes' => [['nombre' => 'Sal', 'texto_original' => 'Sal']],
+    'pasos' => [['numero' => 1, 'instruccion' => 'Probar.']],
+]);
+comprobar(!$repository->eliminarArchivada($idEliminable), 'Eliminó una receta activa');
+comprobar($repository->cambiarArchivado($idEliminable, true), 'No archivó la receta eliminable');
+comprobar($repository->eliminarArchivada($idEliminable), 'No eliminó la receta archivada');
+comprobar($repository->obtenerPorId($idEliminable, true) === null, 'La receta eliminada sigue existiendo');
+$relacionesEliminadas = (int) $pdo->query(
+    'SELECT COUNT(*) FROM receta_ingredientes WHERE receta_id = ' . $idEliminable
+)->fetchColumn();
+comprobar($relacionesEliminadas === 0, 'No eliminó en cascada las relaciones de la receta');
+
 fwrite(STDOUT, "RecetaUpdateTest: OK\n");
