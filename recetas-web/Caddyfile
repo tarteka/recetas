@@ -1,0 +1,35 @@
+{$RECETAS_DOMINIO:recetas.proyectozero.org} {
+    encode zstd gzip
+
+    header {
+        -Server
+        -X-Powered-By
+        Strict-Transport-Security "max-age=31536000"
+        Permissions-Policy "camera=(), microphone=(), geolocation=()"
+        X-Content-Type-Options nosniff
+        X-Frame-Options SAMEORIGIN
+        Referrer-Policy strict-origin-when-cross-origin
+    }
+
+    @assets path /assets/*
+    header @assets Cache-Control "public, max-age=31536000, immutable"
+
+    handle_path /api/* {
+        reverse_proxy recetas-api:80
+    }
+
+    handle /imagenes/* {
+        reverse_proxy recetas-api:80
+    }
+
+    handle {
+        root * /srv
+        try_files {path} /index.html
+        file_server
+    }
+
+    log {
+        output stdout
+        format console
+    }
+}

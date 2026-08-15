@@ -305,6 +305,145 @@ git check-ignore -v \
   datos/imagenes/
 ```
 
+## Publicación en producción
+
+La configuración de producción utiliza Caddy como servidor público y proxy HTTPS, Apache con PHP para la API y una compilación estática de React. El dominio configurado por defecto es `recetas.proyectozero.org`.
+
+### Arquitectura del despliegue
+
+```text
+Internet
+   │
+   ▼
+Caddy :80/:443 ──► React estático
+   │
+   ├── /api/* ───► Slim + Apache
+   └── /imagenes/* ─► Slim + Apache
+                         │
+                         ▼
+                 SQLite e imágenes
+                    en ./datos
+```
+
+- `recetas-web` es el único servicio expuesto públicamente.
+- Caddy solicita y renueva automáticamente el certificado HTTPS.
+- `recetas-api` se comunica con Caddy mediante la red interna de Docker.
+- La API también escucha en `127.0.0.1:8080` para los scripts locales de OpenClaw.
+- La base de datos y las imágenes persisten en el directorio `datos/` del servidor.
+
+### Requisitos previos
+
+- El registro DNS de `recetas.proyectozero.org` debe apuntar a la IP pública del VPS.
+- Los puertos TCP 80 y 443 deben estar abiertos en Oracle Cloud y en el firewall del sistema.
+- Docker y Docker Compose deben estar instalados.
+- Ningún otro servicio debe estar utilizando los puertos públicos 80 y 443.
+
+### Configurar el entorno
+
+Copia el archivo de ejemplo y establece un token de escritura seguro:
+
+```bash
+cp .env.example .env
+openssl rand -hex 32
+```
+
+Completa `.env` sin espacios ni comillas innecesarias:
+
+```dotenv
+RECETAS_DOMINIO=recetas.proyectozero.org
+RECETAS_API_TOKEN=token_generado
+```
+
+Protege el archivo de secretos:
+
+```bash
+chmod 600 .env
+```
+
+### Desplegar
+
+Detén primero el entorno de desarrollo si está activo, porque utiliza el mismo puerto local de la API:
+
+```bash
+sudo docker compose down
+sudo docker compose -f compose.prod.yaml up -d --build
+```
+
+Caddy publica los puertos 80 y 443 y gestiona automáticamente el certificado TLS. La API permanece disponible en `127.0.0.1:8080` para los scripts locales de OpenClaw, pero no se expone directamente a Internet.
+
+Comprueba el estado y los logs:
+
+```bash
+sudo docker compose -f compose.prod.yaml ps
+sudo docker compose -f compose.prod.yaml logs --tail=100
+curl --fail https://recetas.proyectozero.org/api/salud
+```
+
+La comprobación de salud debe devolver:
+
+```json
+{"estado":"ok"}
+```
+
+Las rutas directas de React, como `/acerca-de` y `/recetas/1`, utilizan fallback a `index.html` y pueden recargarse normalmente.
+
+### Actualizar
+
+```bash
+git pull
+sudo docker compose -f compose.prod.yaml up -d --build
+curl --fail https://recetas.proyectozero.org/api/salud
+sudo docker image prune -f
+```
+
+El volumen de Caddy conserva el certificado TLS y `datos/` conserva las recetas al reconstruir los contenedores.
+
+### Copias de seguridad
+
+Se deben copiar conjuntamente `datos/recetas.sqlite` y `datos/imagenes/`. Antes de realizar una copia simple del archivo SQLite, detén brevemente la API para evitar escrituras concurrentes:
+
+```bash
+mkdir -p backups
+sudo docker compose -f compose.prod.yaml stop recetas-api
+sudo tar -czf "backups/recetas-backup-$(date +%F-%H%M).tar.gz" datos/
+sudo docker compose -f compose.prod.yaml start recetas-api
+```
+
+Guarda periódicamente una copia fuera del VPS y verifica que pueda restaurarse.
+
+### Restaurar una copia
+
+La restauración reemplaza los datos actuales. Detén la API, conserva primero una copia del estado existente y extrae el archivo desde la raíz del proyecto:
+
+```bash
+sudo docker compose -f compose.prod.yaml stop recetas-api
+sudo mv datos "datos-antes-restauracion-$(date +%F-%H%M)"
+sudo tar -xzf backups/recetas-backup-AAAA-MM-DD-HHMM.tar.gz
+sudo docker compose -f compose.prod.yaml start recetas-api
+curl --fail https://recetas.proyectozero.org/api/salud
+```
+
+### Operación habitual
+
+```bash
+# Seguir todos los logs
+sudo docker compose -f compose.prod.yaml logs -f
+
+# Ver solo los logs del servidor web
+sudo docker compose -f compose.prod.yaml logs -f recetas-web
+
+# Ver solo los logs de la API
+sudo docker compose -f compose.prod.yaml logs -f recetas-api
+
+# Reiniciar los servicios
+sudo docker compose -f compose.prod.yaml restart
+
+# Detener la aplicación sin eliminar los datos
+sudo docker compose -f compose.prod.yaml down
+```
+
+No utilices `docker compose down -v` en producción: eliminaría los volúmenes gestionados por Docker que conservan los certificados y la configuración interna de Caddy. El directorio enlazado `datos/` no se elimina con ese comando, pero debe mantenerse siempre respaldado.
+
 ## Desarrollo
 
 Para consultar los logs:

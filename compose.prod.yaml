@@ -1,0 +1,50 @@
+name: recetas-produccion
+
+services:
+  recetas-api:
+    build:
+      context: ./recetas-api
+      dockerfile: Dockerfile.prod
+    environment:
+      RECETAS_API_TOKEN: ${RECETAS_API_TOKEN:?Configura RECETAS_API_TOKEN en .env}
+    volumes:
+      - ./datos:/datos
+    ports:
+      - "127.0.0.1:8080:80"
+    networks:
+      - recetas-interna
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "php", "-r", "exit(@file_get_contents('http://127.0.0.1/salud') === false ? 1 : 0);"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+  recetas-web:
+    build:
+      context: ./recetas-web
+      dockerfile: Dockerfile.prod
+    environment:
+      RECETAS_DOMINIO: ${RECETAS_DOMINIO:-recetas.proyectozero.org}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - recetas-interna
+    depends_on:
+      recetas-api:
+        condition: service_healthy
+    restart: unless-stopped
+
+networks:
+  recetas-interna:
+    driver: bridge
+
+volumes:
+  caddy_data:
+  caddy_config:

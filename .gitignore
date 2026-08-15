@@ -9,6 +9,7 @@ recetas-web/node_modules/
 recetas-web/dist/
 
 # Base de datos
+backups/
 datos/
 *.sqlite
 *.sqlite3
