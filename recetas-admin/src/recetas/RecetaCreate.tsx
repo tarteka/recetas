@@ -1,15 +1,14 @@
-import { Box, Typography } from '@mui/material';
+import { Box, Button, Typography } from '@mui/material';
 import {
   ArrayInput,
-  Button,
   Create,
   ImageField,
   NumberInput,
   SaveButton,
   SimpleFormIterator,
   TabbedForm,
+  TabbedFormTabs,
   TextInput,
-  Toolbar,
   minValue,
   required,
   useRedirect,
@@ -20,14 +19,16 @@ function BarraCreacion() {
   const redirect = useRedirect();
 
   return (
-    <Toolbar className="editor-receta__toolbar">
+    <Box className="editor-receta__toolbar" role="toolbar">
       <SaveButton label="Crear receta" />
       <Button
-        label="Cancelar"
+        type="button"
         onClick={() => redirect('list', 'recetas')}
         variant="outlined"
-      />
-    </Toolbar>
+      >
+        Cancelar
+      </Button>
+    </Box>
   );
 }
 
@@ -48,6 +49,7 @@ export function RecetaCreate() {
     >
       <TabbedForm
         toolbar={<BarraCreacion />}
+        tabs={<TabbedFormTabs variant="scrollable" scrollButtons="auto" allowScrollButtonsMobile />}
         warnWhenUnsavedChanges
         defaultValues={{
           ingredientes: [{ cantidad: null, unidad: '', nombre: '', notas: '' }],

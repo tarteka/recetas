@@ -53,6 +53,21 @@ export const temaRecetario: ThemeOptions = {
     ...Array(18).fill('0 20px 55px rgb(38 45 35 / 13%)'),
   ] as ThemeOptions['shadows'],
   components: {
+    RaLayout: {
+      styleOverrides: {
+        root: {
+          minWidth: 0,
+        },
+        contentWithSidebar: {
+          minWidth: 0,
+          maxWidth: '100%',
+        },
+        content: {
+          minWidth: 0,
+          maxWidth: '100%',
+        },
+      },
+    },
     MuiCssBaseline: {
       styleOverrides: {
         body: {
@@ -207,4 +222,3 @@ export const temaRecetario: ThemeOptions = {
     },
   },
 };
-

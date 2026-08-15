@@ -1,14 +1,13 @@
-import { Box, Typography } from '@mui/material';
+import { Box, Button, Typography } from '@mui/material';
 import {
   ArrayInput,
-  Button,
   Edit,
   NumberInput,
   SaveButton,
   SimpleFormIterator,
   TabbedForm,
+  TabbedFormTabs,
   TextInput,
-  Toolbar,
   minValue,
   required,
   useRedirect,
@@ -20,14 +19,16 @@ function BarraGuardado() {
   const redirect = useRedirect();
 
   return (
-    <Toolbar className="editor-receta__toolbar">
+    <Box className="editor-receta__toolbar" role="toolbar">
       <SaveButton label="Guardar cambios" />
       <Button
-        label="Cancelar"
+        type="button"
         onClick={() => redirect('list', 'recetas')}
         variant="outlined"
-      />
-    </Toolbar>
+      >
+        Cancelar
+      </Button>
+    </Box>
   );
 }
 
@@ -47,7 +48,11 @@ export function RecetaEdit() {
         },
       }}
     >
-      <TabbedForm toolbar={<BarraGuardado />} warnWhenUnsavedChanges>
+      <TabbedForm
+        toolbar={<BarraGuardado />}
+        tabs={<TabbedFormTabs variant="scrollable" scrollButtons="auto" allowScrollButtonsMobile />}
+        warnWhenUnsavedChanges
+      >
         <TabbedForm.Tab label="Información">
           <Box sx={{ width: '100%' }}>
             <TextInput

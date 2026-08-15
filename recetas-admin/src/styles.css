@@ -104,6 +104,18 @@ body {
 .editor-receta {
   --editor-padding: clamp(20px, 3vw, 36px);
   width: 100%;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.RaLayout-root,
+.RaLayout-appFrame,
+.RaLayout-contentWithSidebar,
+.RaLayout-content,
+.editor-receta .RaEdit-main,
+.editor-receta .RaCreate-main {
+  min-width: 0 !important;
+  max-width: 100%;
 }
 
 .editor-receta .RaEdit-card,
@@ -201,29 +213,47 @@ body {
   background: #e7efe8;
 }
 
-.editor-receta .RaToolbar-root {
+.editor-receta .editor-receta__toolbar {
   position: sticky;
   z-index: 5;
   bottom: 0;
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  width: 100%;
   min-height: 72px;
+  padding-block: 14px;
   padding-inline: var(--editor-padding);
   border-top: 1px solid #dedbd1;
   background: rgb(255 255 255 / 94%);
   backdrop-filter: blur(12px);
 }
 
-.editor-receta .RaToolbar-root .MuiButton-contained {
+.editor-receta .editor-receta__toolbar .MuiButton-contained {
   min-width: 180px;
 }
 
 @media (max-width: 700px) {
+  .editor-receta {
+    --editor-padding: 12px;
+  }
+
   .editor-receta .RaEdit-card,
-.editor-receta .RaCreate-card {
-    border-radius: 14px;
+  .editor-receta .RaCreate-card {
+    border-radius: 12px;
   }
 
   .editor-receta .RaTabbedFormTabs-root {
+    width: 100%;
+    max-width: 100%;
+    padding-inline: 0;
     overflow-x: auto;
+  }
+
+  .editor-receta .MuiTabs-root,
+  .editor-receta .MuiTabs-scroller {
+    min-width: 0;
+    max-width: 100%;
   }
 
   .editor-receta .RaSimpleFormIterator-line {
@@ -231,12 +261,14 @@ body {
     padding: 16px 12px !important;
   }
 
-  .editor-receta .RaSimpleFormIterator-line > .MuiFormControl-root {
+  .editor-receta .RaSimpleFormIterator-form > .MuiFormControl-root {
     width: 100% !important;
     min-width: 0 !important;
+    max-width: 100% !important;
+    flex-basis: auto !important;
   }
 
-  .editor-receta .RaToolbar-root .MuiButton-contained {
+  .editor-receta .editor-receta__toolbar .MuiButton-contained {
     width: 100%;
   }
 }
@@ -276,12 +308,6 @@ body {
   color: #6c6b62;
 }
 
-.editor-receta .editor-receta__toolbar {
-  display: flex;
-  justify-content: flex-end;
-  gap: 12px;
-}
-
 .editor-receta .editor-receta__toolbar > .MuiButton-root {
   min-width: 180px;
 }
@@ -290,7 +316,28 @@ body {
   .editor-receta .RaSimpleFormIterator-form {
     display: grid;
     grid-template-columns: 1fr;
+    grid-column: 1 / -1;
     width: 100%;
+  }
+
+  .editor-receta .RaSimpleFormIterator-line {
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .editor-receta .RaSimpleFormIterator-index {
+    min-width: 0;
+    width: max-content;
+    margin: 0 0 10px;
+  }
+
+  .editor-receta .RaSimpleFormIterator-action {
+    position: absolute;
+    top: 8px;
+    right: 8px;
   }
 
   .editor-receta .RaSimpleFormIterator-buttons {
@@ -305,10 +352,33 @@ body {
   }
 
   .editor-receta .editor-receta__toolbar {
-    display: flex;
-    justify-content: flex-end;
-    flex-wrap: wrap;
-    padding-block: 14px;
+    position: static !important;
+    z-index: auto;
+    inset: auto !important;
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
+    max-width: 100%;
+    height: auto;
+    max-height: none;
+    min-height: 0;
+    padding: 12px;
+    overflow: visible;
+    gap: 8px;
+    backdrop-filter: none;
+  }
+
+  .editor-receta .editor-receta__toolbar > .MuiButton-root {
+    display: inline-flex;
+    visibility: visible;
+    opacity: 1;
+    min-height: 44px;
+    padding-inline: 10px;
+    font-size: .8rem;
+  }
+
+  .editor-receta .editor-receta__toolbar .MuiButton-startIcon {
+    display: none;
   }
 }
 
@@ -391,6 +461,15 @@ body {
 @media (max-width: 800px) {
   .editor-receta__clasificacion {
     grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .editor-receta__clasificacion > .MuiBox-root {
+    padding: 16px;
+  }
+
+  .editor-receta__clasificacion .clasificacion-selector .MuiAutocomplete-input {
+    min-width: 80px !important;
   }
 }
 
@@ -466,6 +545,21 @@ body {
 
   .imagen-upload__dropzone > .MuiButton-root {
     grid-column: 1 / -1;
+    width: 100%;
+  }
+
+  .imagen-upload__acciones {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .imagen-upload__acciones > p {
+    grid-column: 1 / -1;
+    width: 100%;
+  }
+
+  .imagen-upload__acciones > .MuiButton-root {
+    min-width: 0;
     width: 100%;
   }
 }
