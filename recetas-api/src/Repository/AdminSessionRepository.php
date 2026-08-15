@@ -86,11 +86,6 @@ final class AdminSessionRepository
             return null;
         }
 
-        $update = $this->pdo->prepare(
-            'UPDATE admin_sessions SET last_seen_at = :now WHERE id_hash = :id_hash'
-        );
-        $update->execute(['now' => $now, 'id_hash' => $hash]);
-
         return new AdminIdentity(
             (string) $session['google_subject'],
             (string) $session['email'],

@@ -149,6 +149,48 @@ final class RecetaController
             201
         );
     }
+    /** Actualiza una receta completa desde el panel administrativo. */
+    public function actualizar(
+        ServerRequestInterface $request,
+        ResponseInterface $response,
+        array $args
+    ): ResponseInterface {
+        $id = (int) ($args['id'] ?? 0);
+
+        if ($id <= 0) {
+            return $this->json($response, ['error' => 'Identificador de receta no válido'], 400);
+        }
+
+        try {
+            $datos = json_decode(
+                (string) $request->getBody(),
+                true,
+                flags: JSON_THROW_ON_ERROR
+            );
+        } catch (JsonException) {
+            return $this->json($response, ['error' => 'JSON no válido'], 400);
+        }
+
+        if (
+            !is_array($datos)
+            || trim((string) ($datos['titulo'] ?? '')) === ''
+            || !is_array($datos['ingredientes'] ?? null)
+            || $datos['ingredientes'] === []
+            || !is_array($datos['pasos'] ?? null)
+            || $datos['pasos'] === []
+        ) {
+            return $this->json($response, ['error' => 'Datos de receta incompletos'], 422);
+        }
+
+        if (!$this->repository->actualizar($id, $datos)) {
+            return $this->json($response, ['error' => 'Receta no encontrada'], 404);
+        }
+
+        return $this->json(
+            $response,
+            $this->repository->obtenerPorId($id)
+        );
+    }
 
     private function parametroOpcional(array $query, string $nombre): ?string
     {

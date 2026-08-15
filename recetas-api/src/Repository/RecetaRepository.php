@@ -361,6 +361,65 @@ final class RecetaRepository
         }
     }
 
+    public function actualizar(int $id, array $datos): bool
+    {
+        $statement = $this->pdo->prepare('SELECT 1 FROM recetas WHERE id = :id');
+        $statement->execute(['id' => $id]);
+
+        if ($statement->fetchColumn() === false) {
+            return false;
+        }
+
+        try {
+            $this->pdo->beginTransaction();
+
+            $statement = $this->pdo->prepare(
+                'UPDATE recetas SET
+                    titulo = :titulo,
+                    descripcion = :descripcion,
+                    fuente_url = :fuente_url,
+                    fuente_nombre = :fuente_nombre,
+                    imagen_url = :imagen_url,
+                    raciones = :raciones,
+                    tiempo_preparacion_min = :tiempo_preparacion_min,
+                    tiempo_coccion_min = :tiempo_coccion_min,
+                    tiempo_total_min = :tiempo_total_min,
+                    actualizado_en = CURRENT_TIMESTAMP
+                WHERE id = :id'
+            );
+            $statement->execute([
+                'id' => $id,
+                'titulo' => trim((string) $datos['titulo']),
+                'descripcion' => $datos['descripcion'] ?? null,
+                'fuente_url' => $datos['fuente_url'] ?? null,
+                'fuente_nombre' => $datos['fuente_nombre'] ?? null,
+                'imagen_url' => $datos['imagen_url'] ?? null,
+                'raciones' => $datos['raciones'] ?? null,
+                'tiempo_preparacion_min' => $datos['tiempo_preparacion_min'] ?? null,
+                'tiempo_coccion_min' => $datos['tiempo_coccion_min'] ?? null,
+                'tiempo_total_min' => $datos['tiempo_total_min'] ?? null,
+            ]);
+
+            foreach (['receta_ingredientes', 'receta_pasos', 'receta_categorias', 'receta_etiquetas'] as $tabla) {
+                $statement = $this->pdo->prepare('DELETE FROM ' . $tabla . ' WHERE receta_id = :id');
+                $statement->execute(['id' => $id]);
+            }
+
+            $this->guardarIngredientes($id, $datos['ingredientes']);
+            $this->guardarPasos($id, $datos['pasos']);
+            $this->guardarCategorias($id, $datos['categorias'] ?? []);
+            $this->guardarEtiquetas($id, $datos['etiquetas'] ?? []);
+
+            $this->pdo->commit();
+            return true;
+        } catch (Throwable $exception) {
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
+            throw $exception;
+        }
+    }
+
     private function guardarIngredientes(
         int $recetaId,
         array $ingredientes
@@ -456,7 +515,7 @@ final class RecetaRepository
     ): void {
         // Crea categorías inexistentes y las relaciona con la receta.
         foreach ($categorias as $categoria) {
-            $nombre = trim((string) $categoria);
+            $nombre = trim((string) (is_array($categoria) ? ($categoria['nombre'] ?? '') : $categoria));
 
             if ($nombre === '') {
                 continue;
@@ -510,7 +569,7 @@ final class RecetaRepository
     ): void {
         // Crea etiquetas inexistentes y las relaciona con la receta.
         foreach ($etiquetas as $etiqueta) {
-            $nombre = trim((string) $etiqueta);
+            $nombre = trim((string) (is_array($etiqueta) ? ($etiqueta['nombre'] ?? '') : $etiqueta));
 
             if ($nombre === '') {
                 continue;

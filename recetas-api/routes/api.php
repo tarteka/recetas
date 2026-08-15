@@ -43,6 +43,14 @@ return static function (
     $app->get('/admin/auth/google/callback', [$adminAuthController, 'callback']);
     $app->get('/admin/me', [$adminAuthController, 'me'])
         ->add($adminSessionMiddleware);
+    $app->get('/admin/recetas', [$recetaController, 'listar'])
+        ->add($adminSessionMiddleware);
+    $app->get('/admin/recetas/{id:[0-9]+}', [$recetaController, 'obtener'])
+        ->add($adminSessionMiddleware);
+    $app->put('/admin/recetas/{id:[0-9]+}', [$recetaController, 'actualizar'])
+        ->add($adminCsrfMiddleware)
+        ->add($adminSessionMiddleware);
+
     $app->post('/admin/logout', [$adminAuthController, 'logout'])
         ->add($adminCsrfMiddleware)
         ->add($adminSessionMiddleware);

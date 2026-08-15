@@ -20,7 +20,7 @@ export function RecetaList() {
       sort={{ field: 'creado_en', order: 'DESC' }}
       title="Recetas"
     >
-      <Datagrid bulkActionButtons={false} rowClick={false}>
+      <Datagrid bulkActionButtons={false} rowClick="edit">
         <ImageField
           source="imagen_url"
           label="Imagen"

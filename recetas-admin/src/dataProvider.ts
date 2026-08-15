@@ -6,6 +6,8 @@ import type {
   GetOneParams,
   GetOneResult,
   RaRecord,
+  UpdateParams,
+  UpdateResult,
 } from 'react-admin';
 import type { RespuestaRecetas } from './types';
 
@@ -22,13 +24,18 @@ function valorFiltro(filter: Record<string, unknown>, nombre: string): string | 
   return typeof valor === 'string' && valor.trim() !== '' ? valor.trim() : undefined;
 }
 
-async function solicitarJson(url: string): Promise<unknown> {
+async function solicitarJson(url: string, init: RequestInit = {}): Promise<unknown> {
   const response = await fetch(url, {
+    ...init,
     credentials: 'include',
-    headers: { Accept: 'application/json' },
+    headers: { Accept: 'application/json', ...init.headers },
   });
   if (!response.ok) {
-    throw new HttpError('No se pudo completar la petición', response.status);
+    const body = await response.json().catch(() => null) as { error?: unknown } | null;
+    const message = typeof body?.error === 'string'
+      ? body.error
+      : 'No se pudo completar la petición';
+    throw new HttpError(message, response.status, body);
   }
   return response.json() as Promise<unknown>;
 }
@@ -39,6 +46,29 @@ function esRespuestaRecetas(value: unknown): value is RespuestaRecetas {
   if (!Array.isArray(response.datos)) return false;
   if (typeof response.paginacion !== 'object' || response.paginacion === null) return false;
   return typeof (response.paginacion as Record<string, unknown>).total === 'number';
+}
+
+function nombresClasificacion(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+
+  return value
+    .map((item) => {
+      if (typeof item === 'string') return item;
+      if (typeof item === 'object' && item !== null) {
+        const nombre = (item as Record<string, unknown>).nombre;
+        return typeof nombre === 'string' ? nombre : '';
+      }
+      return '';
+    })
+    .filter((nombre) => nombre.trim() !== '');
+}
+
+function normalizarReceta(receta: Record<string, unknown>): Record<string, unknown> {
+  return {
+    ...receta,
+    categorias: nombresClasificacion(receta.categorias),
+    etiquetas: nombresClasificacion(receta.etiquetas),
+  };
 }
 
 async function getList<RecordType extends RaRecord = RaRecord>(
@@ -58,13 +88,13 @@ async function getList<RecordType extends RaRecord = RaRecord>(
   if (categoria) query.set('categoria', categoria);
   if (etiqueta) query.set('etiqueta', etiqueta);
 
-  const response = await solicitarJson(`/api/recetas?${query}`);
+  const response = await solicitarJson(`/api/admin/recetas?${query}`);
   if (!esRespuestaRecetas(response)) {
     throw new Error('La API devolvió un listado de recetas no válido');
   }
 
   return {
-    data: response.datos as unknown as RecordType[],
+    data: response.datos.map((receta) => normalizarReceta(receta)) as unknown as RecordType[],
     total: response.paginacion.total,
   };
 }
@@ -74,12 +104,64 @@ async function getOne<RecordType extends RaRecord = RaRecord>(
   params: GetOneParams<RecordType>,
 ): Promise<GetOneResult<RecordType>> {
   comprobarRecurso(resource);
-  const response = await solicitarJson(`/api/recetas/${encodeURIComponent(String(params.id))}`);
+  const response = await solicitarJson(`/api/admin/recetas/${encodeURIComponent(String(params.id))}`);
   if (typeof response !== 'object' || response === null || !('id' in response)) {
     throw new Error('La API devolvió una receta no válida');
   }
-  return { data: response as unknown as RecordType };
+  return {
+    data: normalizarReceta(response as Record<string, unknown>) as unknown as RecordType,
+  };
 }
+
+function prepararReceta(data: Record<string, unknown>): Record<string, unknown> {
+  const ingredientes = Array.isArray(data.ingredientes)
+    ? data.ingredientes.map((value) => {
+      const ingrediente = value as Record<string, unknown>;
+      const textoOriginal = [
+        ingrediente.cantidad,
+        ingrediente.unidad,
+        ingrediente.nombre,
+        ingrediente.notas,
+      ]
+        .filter((part) => part !== null && part !== undefined && String(part).trim() !== '')
+        .map(String)
+        .join(' ');
+      return { ...ingrediente, texto_original: textoOriginal };
+    })
+    : [];
+
+  const pasos = Array.isArray(data.pasos)
+    ? data.pasos.map((value, index) => ({
+      ...(value as Record<string, unknown>),
+      numero: index + 1,
+    }))
+    : [];
+
+  return { ...data, ingredientes, pasos };
+}
+
+
+async function update<RecordType extends RaRecord = RaRecord>(
+  resource: string,
+  params: UpdateParams<RecordType>,
+): Promise<UpdateResult<RecordType>> {
+  comprobarRecurso(resource);
+  const response = await solicitarJson(
+    `/api/admin/recetas/${encodeURIComponent(String(params.id))}`,
+    {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(prepararReceta(params.data as Record<string, unknown>)),
+    },
+  );
+  if (typeof response !== 'object' || response === null || !('id' in response)) {
+    throw new Error('La API devolvió una receta actualizada no válida');
+  }
+  return {
+    data: normalizarReceta(response as Record<string, unknown>) as unknown as RecordType,
+  };
+}
+
 
 function noSoportado(operacion: string, resource: string): Promise<never> {
   return Promise.reject(new Error(`${operacion} no está disponible para ${resource} en esta versión de solo lectura`));
@@ -91,7 +173,7 @@ export const dataProvider: DataProvider = {
   getMany: (resource) => noSoportado('getMany', resource),
   getManyReference: (resource) => noSoportado('getManyReference', resource),
   create: (resource) => noSoportado('create', resource),
-  update: (resource) => noSoportado('update', resource),
+  update,
   updateMany: (resource) => noSoportado('updateMany', resource),
   delete: (resource) => noSoportado('delete', resource),
   deleteMany: (resource) => noSoportado('deleteMany', resource),
