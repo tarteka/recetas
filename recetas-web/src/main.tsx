@@ -5,6 +5,7 @@ import App from './App';
 import './styles/global.css';
 import './styles/listado.css';
 import './styles/detalle.css';
+import './styles/acerca.css';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode><BrowserRouter><App /></BrowserRouter></StrictMode>,

@@ -1,0 +1,26 @@
+.pagina-acerca { padding-bottom: clamp(3rem, 8vw, 7rem); }
+.acerca-navegacion { padding-block: 1.25rem; }
+.acerca-cabecera { max-width: 920px; padding-block: clamp(2.5rem, 7vw, 6rem); }
+.acerca-cabecera h1 { max-width: 780px; margin-bottom: 1.5rem; }
+.acerca-cabecera__entradilla { max-width: 720px; color: var(--texto-secundario); font-size: clamp(1.1rem, 2.5vw, 1.45rem); line-height: 1.55; }
+.acerca-bloque { display: grid; gap: 1.5rem; padding-block: clamp(2.5rem, 6vw, 4.5rem); border-top: 1px solid var(--borde); }
+.acerca-bloque h2, .acerca-tecnologia h2 { margin: .35rem 0 0; font-family: Georgia, serif; font-size: clamp(1.6rem, 4vw, 2.35rem); }
+.acerca-numero { margin: 0; color: var(--principal); font-size: .75rem; font-weight: 800; letter-spacing: .1em; }
+.acerca-texto { max-width: 680px; color: var(--texto-secundario); font-size: 1.05rem; line-height: 1.75; }
+.acerca-texto p:last-child { margin-bottom: 0; }
+.acerca-pasos { display: grid; gap: 0; margin: 0; padding: 0; list-style: none; counter-reset: pasos; }
+.acerca-pasos li { display: grid; gap: .35rem; padding: 1.2rem 0; border-bottom: 1px solid var(--borde); counter-increment: pasos; }
+.acerca-pasos strong::before { content: '0' counter(pasos) '  '; color: var(--principal); font-size: .72rem; }
+.acerca-pasos span { color: var(--texto-secundario); line-height: 1.55; }
+.acerca-tecnologia { display: grid; gap: 2rem; padding: clamp(2rem, 5vw, 3.5rem); border-radius: var(--radio-grande); background: var(--principal); color: white; }
+.acerca-tecnologia h2 { color: white; }.acerca-tecnologia > div > p:last-child { max-width: 480px; margin: 1rem 0 0; color: rgb(255 255 255 / 72%); line-height: 1.6; }
+.acerca-tecnologia .acerca-numero { color: rgb(255 255 255 / 60%); }
+.acerca-tecnologia ul { margin: 0; padding: 0; list-style: none; }
+.acerca-tecnologia li { display: flex; justify-content: space-between; gap: 1rem; padding: .85rem 0; border-bottom: 1px solid rgb(255 255 255 / 18%); }
+.acerca-tecnologia li span { color: rgb(255 255 255 / 62%); }.acerca-tecnologia li strong { text-align: right; }
+.acerca-cierre { padding-top: 2rem; text-align: center; }.acerca-cierre p { color: var(--texto-secundario); }.acerca-cierre a { color: var(--principal); font-weight: 800; }
+
+@media (min-width: 760px) {
+  .acerca-bloque { grid-template-columns: minmax(190px, .55fr) minmax(0, 1.45fr); gap: clamp(3rem, 8vw, 8rem); }
+  .acerca-tecnologia { grid-template-columns: 1fr 1fr; align-items: start; }
+}

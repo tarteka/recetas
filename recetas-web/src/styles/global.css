@@ -34,3 +34,16 @@ h2 { line-height: 1.2; }
 .footer-principal p { margin: 0; color: var(--texto-secundario); font-size: .9rem; }
 .footer-principal a { color: var(--principal); font-weight: 800; }
 .volver { display: inline-flex; align-items: center; min-height: 44px; color: var(--principal); font-weight: 700; text-decoration: none; }
+
+.footer-principal .contenedor { justify-content: space-between; gap: .5rem 1rem; flex-wrap: wrap; }
+.footer-principal nav a { display: inline-flex; min-height: 44px; align-items: center; text-decoration: none; }
+.footer-principal nav a:hover { text-decoration: underline; }
+
+.footer-principal .contenedor {
+  justify-content: center;
+  text-align: center;
+}
+.footer-principal p { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: .45rem; }
+.footer-principal__separador { color: var(--borde); font-weight: 400; }
+.footer-principal p a { display: inline-flex; min-height: 44px; align-items: center; text-decoration: none; }
+.footer-principal p a:hover { text-decoration: underline; }
