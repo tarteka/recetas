@@ -53,6 +53,9 @@ return static function (
     $app->put('/admin/recetas/{id:[0-9]+}', [$recetaController, 'actualizar'])
         ->add($adminCsrfMiddleware)
         ->add($adminSessionMiddleware);
+    $app->post('/admin/recetas/{id:[0-9]+}/imagen', [$imagenController, 'actualizar'])
+        ->add($adminCsrfMiddleware)
+        ->add($adminSessionMiddleware);
 
     $app->post('/admin/logout', [$adminAuthController, 'logout'])
         ->add($adminCsrfMiddleware)

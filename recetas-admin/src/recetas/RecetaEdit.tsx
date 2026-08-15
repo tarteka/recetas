@@ -3,7 +3,6 @@ import {
   ArrayInput,
   Button,
   Edit,
-  ImageField,
   NumberInput,
   SaveButton,
   SimpleFormIterator,
@@ -15,6 +14,7 @@ import {
   useRedirect,
 } from 'react-admin';
 import { ClasificacionInput } from './ClasificacionInput';
+import { ImagenUpload } from './ImagenUpload';
 
 function BarraGuardado() {
   const redirect = useRedirect();
@@ -165,20 +165,7 @@ export function RecetaEdit() {
 
         <TabbedForm.Tab label="Fuente e imagen">
           <Box sx={{ width: '100%' }}>
-            <ImageField
-              source="imagen_url"
-              label="Imagen actual"
-              sx={{
-                display: 'block',
-                mb: 3,
-                '& img': {
-                  width: 'min(100%, 520px)',
-                  aspectRatio: '3 / 2',
-                  objectFit: 'cover',
-                  borderRadius: 3,
-                },
-              }}
-            />
+            <ImagenUpload />
             <TextInput source="imagen_url" label="URL de imagen" disabled fullWidth />
             <TextInput source="fuente_nombre" label="Nombre de la fuente" fullWidth />
             <TextInput source="fuente_url" label="URL de la fuente" type="url" fullWidth />

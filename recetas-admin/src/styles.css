@@ -393,3 +393,79 @@ body {
     grid-template-columns: 1fr;
   }
 }
+
+.imagen-upload {
+  display: grid;
+  gap: 12px;
+  width: 100%;
+  margin-bottom: 28px;
+}
+
+.imagen-upload__preview {
+  display: grid;
+  place-items: center;
+  width: min(100%, 620px);
+  aspect-ratio: 3 / 2;
+  overflow: hidden;
+  margin-top: 8px;
+  border: 1px solid #dedbd1;
+  border-radius: 18px;
+  background: #f3f1eb;
+}
+
+.imagen-upload__preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.imagen-upload__dropzone {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 16px;
+  width: min(100%, 620px);
+  padding: 18px;
+  border: 1px dashed #9caf9f;
+  border-radius: 16px;
+  background: #fbfaf7;
+  transition: border-color .2s, background-color .2s, transform .2s;
+}
+
+.imagen-upload__dropzone > svg {
+  color: #356044;
+  font-size: 32px;
+}
+
+.imagen-upload__dropzone.is-dragging {
+  border-color: #356044;
+  background: #e7efe8;
+  transform: translateY(-2px);
+}
+
+.imagen-upload__acciones {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  width: min(100%, 620px);
+}
+
+.imagen-upload__acciones > p {
+  min-width: 0;
+  margin-right: auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 620px) {
+  .imagen-upload__dropzone {
+    grid-template-columns: auto 1fr;
+  }
+
+  .imagen-upload__dropzone > .MuiButton-root {
+    grid-column: 1 / -1;
+    width: 100%;
+  }
+}
