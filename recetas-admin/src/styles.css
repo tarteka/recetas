@@ -18,6 +18,125 @@ body {
   background: #f7f5f0;
 }
 
+.lista-recetas__taxonomias {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.lista-recetas__taxonomias .MuiChip-root {
+  height: 25px;
+  font-size: .72rem;
+  font-weight: 650;
+}
+
+.lista-recetas-escritorio .MuiTableCell-root {
+  vertical-align: middle;
+}
+
+.lista-recetas-escritorio .column-titulo {
+  min-width: 180px;
+  font-weight: 700;
+}
+
+.lista-recetas-movil {
+  padding: 8px !important;
+  background: transparent;
+}
+
+.lista-recetas-movil .MuiListItem-root {
+  display: block;
+  margin-bottom: 10px;
+}
+
+.lista-recetas-movil .MuiListItemButton-root {
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid #dedbd1;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 3px 12px rgb(38 45 35 / 5%);
+}
+
+.lista-recetas-movil .MuiListItemIcon-root {
+  flex: 0 0 auto;
+  min-width: 0;
+}
+
+.lista-recetas-movil .MuiListItemText-root {
+  min-width: 0;
+  margin: 0;
+}
+
+.lista-recetas-movil__imagen {
+  display: grid;
+  place-items: center;
+  width: 88px;
+  aspect-ratio: 3 / 2;
+  overflow: hidden;
+  border-radius: 12px;
+  color: #74766f;
+  background: #f0eee8;
+}
+
+.lista-recetas-movil__imagen img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.lista-recetas-movil__cabecera {
+  display: grid;
+  gap: 5px;
+}
+
+.lista-recetas-movil__cabecera strong {
+  color: #25251f;
+  font-family: Georgia, serif;
+  font-size: 1rem;
+  line-height: 1.25;
+}
+
+.lista-recetas-movil__meta {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 4px 10px;
+}
+
+.lista-recetas-movil__meta span {
+  color: #74766f;
+}
+
+.lista-recetas-movil__datos {
+  display: grid;
+  gap: 5px;
+  margin-top: 9px;
+}
+
+.lista-recetas-movil__datos p {
+  color: #5f615a;
+  line-height: 1.35;
+}
+
+@media (max-width: 420px) {
+  .lista-recetas-movil {
+    padding: 5px !important;
+  }
+
+  .lista-recetas-movil .MuiListItemButton-root {
+    gap: 10px;
+    padding: 12px;
+    border-radius: 14px;
+  }
+
+  .lista-recetas-movil__imagen {
+    width: 68px;
+    border-radius: 10px;
+  }
+}
+
 .login-admin {
   min-height: 100vh;
   display: grid;

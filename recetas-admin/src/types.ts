@@ -23,7 +23,11 @@ export interface RecetaResumen extends RaRecord<number> {
   etiquetas: EtiquetaReceta[];
 }
 
-export interface RecetaResumenAdmin extends Omit<RecetaResumen, 'categorias' | 'etiquetas'> {
+export interface RecetaResumenAdmin extends RaRecord<number> {
+  id: number;
+  titulo: string;
+  imagen_url: string | null;
+  creado_en: string;
   categorias: string[];
   etiquetas: string[];
 }
