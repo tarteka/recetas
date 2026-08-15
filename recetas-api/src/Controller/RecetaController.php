@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use App\Repository\RecetaRepository;
-use App\Service\ImagenService;
 use JsonException;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -181,66 +180,4 @@ final class RecetaController
             );
     }
 
-    /**
-     * Recibe, normaliza y asigna una imagen a una receta.
-     */
-    public function actualizarImagen(
-        ServerRequestInterface $request,
-        ResponseInterface $response,
-        array $args
-    ): ResponseInterface {
-        $id = filter_var(
-            $args['id'] ?? null,
-            FILTER_VALIDATE_INT,
-            ['options' => ['min_range' => 1]]
-        );
-
-        if ($id === false) {
-            return $this->json(
-                $response,
-                ['error' => 'Identificador de receta no válido'],
-                400
-            );
-        }
-
-        $contenido = (string) $request->getBody();
-
-        if ($contenido === '') {
-            return $this->json(
-                $response,
-                ['error' => 'No se ha recibido ninguna imagen'],
-                422
-            );
-        }
-
-        try {
-            // ImagenService valida, recorta y convierte la imagen a WebP.
-            $imagenService = new ImagenService();
-            $imagenUrl = $imagenService->guardar($contenido);
-
-            $actualizada = $this->repository->actualizarImagen(
-                $id,
-                $imagenUrl
-            );
-
-            if (!$actualizada) {
-                return $this->json(
-                    $response,
-                    ['error' => 'Receta no encontrada'],
-                    404
-                );
-            }
-
-            return $this->json(
-                $response,
-                ['imagen_url' => $imagenUrl]
-            );
-        } catch (\RuntimeException $exception) {
-            return $this->json(
-                $response,
-                ['error' => $exception->getMessage()],
-                422
-            );
-        }
-    }
 }

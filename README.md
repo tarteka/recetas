@@ -251,6 +251,19 @@ Esto evita depender permanentemente de servidores externos y mantiene un formato
 
 La generación mediante IA solo se utiliza como alternativa cuando no existe una imagen original adecuada.
 
+## Arquitectura de la API
+
+La API utiliza una arquitectura por capas adaptada a una API JSON:
+
+- `public/index.php` es únicamente el punto de entrada HTTP.
+- `bootstrap/app.php` crea Slim y compone repositorios, servicios, controladores y middleware.
+- `routes/api.php` declara las rutas y las conecta con sus controladores.
+- `src/Controller/` gestiona las peticiones y respuestas HTTP.
+- `src/Service/` contiene operaciones de aplicación como el procesamiento de imágenes.
+- `src/Repository/` concentra el acceso a SQLite.
+
+La API no necesita una capa de vistas HTML; sus representaciones se entregan como JSON desde los controladores.
+
 ## Persistencia
 
 Los datos de ejecución se almacenan fuera de las imágenes Docker.
