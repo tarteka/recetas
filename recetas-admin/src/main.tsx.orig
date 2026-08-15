@@ -18,7 +18,6 @@ createRoot(document.getElementById('root')!).render(
         loginPage={AdminLogin}
         requireAuth
         title="Mi Recetario"
-        theme={temaRecetario}
       >
         <Resource name="recetas" list={RecetaList} options={{ label: 'Recetas' }} />
       </Admin>
