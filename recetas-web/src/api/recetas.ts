@@ -8,6 +8,7 @@ export interface RecetaResumen {
   tiempo_total_min: number | null;
   creado_en: string;
   categorias: CategoriaReceta[];
+  etiquetas: EtiquetaReceta[];
 }
 
 export interface IngredienteReceta {

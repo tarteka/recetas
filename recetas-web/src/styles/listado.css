@@ -234,3 +234,63 @@
     gap: 1.5rem;
   }
 }
+
+.nube-etiquetas {
+  display: none;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--borde);
+}
+
+.nube-etiquetas h2 {
+  margin-bottom: .8rem;
+  color: var(--texto);
+  font-size: .82rem;
+  font-weight: 800;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+
+.nube-etiquetas a {
+  color: var(--texto-secundario);
+  text-decoration: none;
+  transition: color .15s, transform .15s;
+}
+
+.nube-etiquetas a:hover,
+.nube-etiquetas a[aria-current="page"] {
+  color: var(--principal);
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
+}
+
+.nube-etiquetas a:hover {
+  transform: translateY(-1px);
+}
+
+
+/* En colecciones pequeñas, la composición centrada mantiene el aspecto de nube aunque muchas etiquetas empaten en frecuencia. */
+.nube-etiquetas__lista {
+  display: block;
+  text-align: center;
+  line-height: 1.35;
+}
+
+.nube-etiquetas__lista > a {
+  display: inline-block;
+  margin: .16rem .3rem;
+  vertical-align: middle;
+}
+
+.nube-etiquetas__nivel-0 { font-size: .72rem; font-weight: 500; opacity: .78; }
+.nube-etiquetas__nivel-1 { font-size: .86rem; font-weight: 550; opacity: .86; }
+.nube-etiquetas__nivel-2 { font-size: 1rem; font-weight: 600; }
+.nube-etiquetas__nivel-3 { font-size: 1.22rem; font-weight: 650; }
+.nube-etiquetas__nivel-4 { font-size: 1.48rem; font-weight: 700; color: var(--texto); }
+.nube-etiquetas .nube-etiquetas__todas { display: block; width: max-content; margin: 0 auto .55rem; }
+
+@media (min-width: 960px) {
+  .nube-etiquetas {
+    display: block;
+  }
+}

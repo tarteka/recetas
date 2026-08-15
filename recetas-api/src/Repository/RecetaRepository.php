@@ -59,6 +59,7 @@ final class RecetaRepository
         $recetasPorId = [];
         foreach ($recetas as $indice => $receta) {
             $recetas[$indice]['categorias'] = [];
+            $recetas[$indice]['etiquetas'] = [];
             $recetasPorId[(int) $receta['id']] = $indice;
         }
 
@@ -80,6 +81,26 @@ final class RecetaRepository
             $recetas[$indice]['categorias'][] = [
                 'nombre' => $categoria['nombre'],
                 'slug' => $categoria['slug'],
+            ];
+        }
+
+        $statement = $this->pdo->prepare(
+            'SELECT re.receta_id, e.nombre, e.slug
+            FROM receta_etiquetas re
+            INNER JOIN etiquetas e ON e.id = re.etiqueta_id
+            WHERE re.receta_id IN (' . $marcadores . ')
+            ORDER BY e.nombre'
+        );
+        $statement->execute(array_map(
+            static fn(array $receta): int => (int) $receta['id'],
+            $recetas
+        ));
+
+        foreach ($statement->fetchAll() as $etiqueta) {
+            $indice = $recetasPorId[(int) $etiqueta['receta_id']];
+            $recetas[$indice]['etiquetas'][] = [
+                'nombre' => $etiqueta['nombre'],
+                'slug' => $etiqueta['slug'],
             ];
         }
 

@@ -4,11 +4,13 @@ import { obtenerRecetas, type CategoriaReceta, type RecetaResumen } from '../api
 import BuscadorRecetas from '../components/BuscadorRecetas';
 import EstadoPagina from '../components/EstadoPagina';
 import ListaRecetas from '../components/ListaRecetas';
+import NubeEtiquetas, { type EtiquetaFrecuente } from '../components/NubeEtiquetas';
 import SelectorCategorias from '../components/SelectorCategorias';
 
 export default function PaginaListado() {
   const [parametros] = useSearchParams();
   const categoriaActiva = parametros.get('categoria');
+  const etiquetaActiva = parametros.get('etiqueta');
   const [recetas, setRecetas] = useState<RecetaResumen[]>([]);
   const [busqueda, setBusqueda] = useState('');
   const [estado, setEstado] = useState<'cargando' | 'error' | 'listo'>('cargando');
@@ -27,14 +29,34 @@ export default function PaginaListado() {
     return [...unicas.values()].sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
   }, [recetas]);
 
+  const etiquetas = useMemo<EtiquetaFrecuente[]>(() => {
+    const frecuencias = new Map<string, EtiquetaFrecuente>();
+    recetas.forEach((receta) => receta.etiquetas.forEach((etiqueta) => {
+      const existente = frecuencias.get(etiqueta.slug);
+      frecuencias.set(etiqueta.slug, { ...etiqueta, frecuencia: (existente?.frecuencia ?? 0) + 1, nivel: 0 });
+    }));
+
+    const valores = [...frecuencias.values()];
+    const minimo = Math.min(...valores.map((etiqueta) => etiqueta.frecuencia));
+    const maximo = Math.max(...valores.map((etiqueta) => etiqueta.frecuencia));
+    return valores.map((etiqueta) => {
+      const variacionEstable = [...etiqueta.slug].reduce((total, caracter) => total + caracter.charCodeAt(0), 0) % 5;
+      return {
+        ...etiqueta,
+        nivel: maximo === minimo ? variacionEstable : Math.round(((etiqueta.frecuencia - minimo) / (maximo - minimo)) * 4),
+      };
+    }).sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
+  }, [recetas]);
+
   const filtradas = useMemo(() => {
     const termino = busqueda.trim().toLocaleLowerCase('es');
     return recetas.filter((receta) => {
       const coincideCategoria = categoriaActiva === null || receta.categorias.some((categoria) => categoria.slug === categoriaActiva);
+      const coincideEtiqueta = etiquetaActiva === null || receta.etiquetas.some((etiqueta) => etiqueta.slug === etiquetaActiva);
       const coincideTexto = termino === '' || `${receta.titulo} ${receta.descripcion ?? ''}`.toLocaleLowerCase('es').includes(termino);
-      return coincideCategoria && coincideTexto;
+      return coincideCategoria && coincideEtiqueta && coincideTexto;
     });
-  }, [busqueda, categoriaActiva, recetas]);
+  }, [busqueda, categoriaActiva, etiquetaActiva, recetas]);
 
   const mostrarControles = estado === 'listo' && recetas.length > 0;
 
@@ -44,6 +66,7 @@ export default function PaginaListado() {
       {mostrarControles && <aside className="sidebar-listado" aria-label="Buscar y filtrar recetas">
         <BuscadorRecetas valor={busqueda} onChange={setBusqueda} />
         <SelectorCategorias categorias={categorias} categoriaActiva={categoriaActiva} />
+        <NubeEtiquetas etiquetas={etiquetas} etiquetaActiva={etiquetaActiva} categoriaActiva={categoriaActiva} />
       </aside>}
       <div className="listado-resultados">
         {estado === 'cargando' ? <EstadoPagina titulo="Cargando recetas" descripcion="Estamos preparando tu recetario." cargando />

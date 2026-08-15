@@ -38,7 +38,7 @@ export default function PaginaDetalle() {
       {receta.tiempo_coccion_min !== null && <div><dt>Cocción</dt><dd>{receta.tiempo_coccion_min} min</dd></div>}
       {receta.tiempo_total_min !== null && <div><dt>Tiempo total</dt><dd>{receta.tiempo_total_min} min</dd></div>}
     </dl>
-    {receta.etiquetas.length > 0 && <ul className="chips chips-secundarios" aria-label="Etiquetas">{receta.etiquetas.map((e) => <li key={e.slug}><span>{e.nombre}</span></li>)}</ul>}
+    {receta.etiquetas.length > 0 && <ul className="chips chips-secundarios" aria-label="Etiquetas">{receta.etiquetas.map((e) => <li key={e.slug}><Link to={'/?etiqueta=' + encodeURIComponent(e.slug)}>{e.nombre}</Link></li>)}</ul>}
     <div className="detalle-contenido"><section><h2>Ingredientes</h2>{receta.ingredientes.length ? <ul className="ingredientes">{receta.ingredientes.map((i) => <li key={i.posicion}>{i.texto_original || [i.cantidad, i.unidad, i.nombre].filter(Boolean).join(' ')}</li>)}</ul> : <p>No hay ingredientes disponibles.</p>}</section>
     <section><h2>Elaboración</h2>{receta.pasos.length ? <ol className="pasos">{receta.pasos.map((p) => <li key={p.numero} value={p.numero}>{p.instruccion}</li>)}</ol> : <p>No hay pasos disponibles.</p>}</section></div>
     {receta.fuente_url && <footer className="fuente"><a href={receta.fuente_url} target="_blank" rel="noreferrer">Ver receta original{receta.fuente_nombre ? ` en ${receta.fuente_nombre}` : ''} ↗</a></footer>}
