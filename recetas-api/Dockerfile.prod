@@ -35,8 +35,11 @@ RUN composer dump-autoload --no-dev --classmap-authoritative \
     && chown -R www-data:www-data /var/www/html
 
 COPY docker/apache-vhost.conf /etc/apache2/sites-available/000-default.conf
+COPY docker/apache-security.conf /etc/apache2/conf-available/zz-recetas-security.conf
+COPY docker/php-production.ini /usr/local/etc/php/conf.d/zz-recetas-production.ini
 COPY docker/entrypoint.prod.sh /usr/local/bin/recetas-entrypoint-prod
-RUN chmod +x /usr/local/bin/recetas-entrypoint-prod
+RUN a2enconf zz-recetas-security \
+    && chmod +x /usr/local/bin/recetas-entrypoint-prod
 
 ENTRYPOINT ["recetas-entrypoint-prod"]
 CMD ["apache2-foreground"]

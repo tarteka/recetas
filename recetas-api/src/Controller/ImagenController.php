@@ -97,11 +97,7 @@ final class ImagenController
         $response->getBody()->write($contenido);
 
         return $response
-            ->withHeader('Content-Type', 'image/webp')
-            ->withHeader(
-                'Cache-Control',
-                'public, max-age=31536000, immutable'
-            );
+            ->withHeader('Content-Type', 'image/webp');
     }
 
     private function json(

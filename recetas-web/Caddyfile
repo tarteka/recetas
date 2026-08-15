@@ -1,35 +1,54 @@
+{
+	order request_body after header
+}
+
 {$RECETAS_DOMINIO:recetas.proyectozero.org} {
-    encode zstd gzip
+	@subidaImagen {
+		method POST
+		path /api/recetas/*/imagen
+	}
 
-    header {
-        -Server
-        -X-Powered-By
-        Strict-Transport-Security "max-age=31536000"
-        Permissions-Policy "camera=(), microphone=(), geolocation=()"
-        X-Content-Type-Options nosniff
-        X-Frame-Options SAMEORIGIN
-        Referrer-Policy strict-origin-when-cross-origin
-    }
+	header {
+		-Server
+		-X-Powered-By
+		Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'"
+		Strict-Transport-Security "max-age=31536000"
+		Permissions-Policy "camera=(), microphone=(), geolocation=()"
+		X-Content-Type-Options nosniff
+		X-Frame-Options SAMEORIGIN
+		Referrer-Policy strict-origin-when-cross-origin
+	}
 
-    @assets path /assets/*
-    header @assets Cache-Control "public, max-age=31536000, immutable"
+	request_body @subidaImagen {
+		max_size 10MiB
+	}
 
-    handle_path /api/* {
-        reverse_proxy recetas-api:80
-    }
+	encode zstd gzip
 
-    handle /imagenes/* {
-        reverse_proxy recetas-api:80
-    }
+	@assets path /assets/*
+	header @assets Cache-Control "public, max-age=31536000, immutable"
 
-    handle {
-        root * /srv
-        try_files {path} /index.html
-        file_server
-    }
+	handle_path /api/* {
+		reverse_proxy recetas-api:80
+	}
 
-    log {
-        output stdout
-        format console
-    }
+	handle /imagenes/* {
+		header Cache-Control "public, max-age=31536000, immutable"
+		reverse_proxy recetas-api:80
+	}
+
+	handle {
+		root * /srv
+		route {
+			try_files {path} /index.html
+			@documento path /index.html
+			header @documento Cache-Control "no-cache"
+			file_server
+		}
+	}
+
+	log {
+		output stdout
+		format console
+	}
 }
