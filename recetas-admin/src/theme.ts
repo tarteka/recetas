@@ -135,6 +135,8 @@ export const temaRecetario: ThemeOptions = {
     MuiIconButton: {
       styleOverrides: {
         root: {
+          minWidth: 44,
+          minHeight: 44,
           borderRadius: 12,
         },
       },

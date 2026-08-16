@@ -6,6 +6,7 @@ import {
   Dialog,
   DialogActions,
   DialogContent,
+  DialogContentText,
   DialogTitle,
   LinearProgress,
   Typography,
@@ -199,11 +200,17 @@ export function ImagenUpload() {
             <Typography variant="body2" title={archivo.name}>{archivo.name}</Typography>
             <Typography variant="caption" color="text.secondary">{tamanoLegible(archivo.size)}</Typography>
           </Box>
-          {subiendo && <LinearProgress variant={progreso > 0 ? 'determinate' : 'indeterminate'} value={progreso} />}
+          {subiendo && (
+            <LinearProgress
+              aria-label="Progreso de subida de la imagen"
+              variant={progreso > 0 ? 'determinate' : 'indeterminate'}
+              value={progreso}
+            />
+          )}
           <Box className="imagen-upload__acciones">
             <Button onClick={limpiarSeleccion} disabled={subiendo}>Cancelar</Button>
             <Button variant="contained" onClick={subir} disabled={subiendo}>
-              {subiendo ? <><CircularProgress size={18} color="inherit" /> Subiendo {progreso || ''}{progreso ? '%' : ''}</> : 'Guardar imagen'}
+              {subiendo ? <><CircularProgress size={18} color="inherit" aria-hidden="true" /> <span role="status">Subiendo {progreso || ''}{progreso ? '%' : ''}</span></> : 'Guardar imagen'}
             </Button>
           </Box>
         </Box>
@@ -218,10 +225,17 @@ export function ImagenUpload() {
         </Box>
       )}
 
-      <Dialog open={confirmarEliminacion} onClose={() => !eliminando && setConfirmarEliminacion(false)}>
-        <DialogTitle>¿Eliminar la imagen?</DialogTitle>
+      <Dialog
+        open={confirmarEliminacion}
+        onClose={() => !eliminando && setConfirmarEliminacion(false)}
+        aria-labelledby="titulo-eliminar-imagen"
+        aria-describedby="descripcion-eliminar-imagen"
+      >
+        <DialogTitle id="titulo-eliminar-imagen">¿Eliminar la imagen?</DialogTitle>
         <DialogContent>
-          La receta quedará sin imagen. Esta acción no elimina la receta y podrás subir otra después.
+          <DialogContentText id="descripcion-eliminar-imagen">
+            La receta quedará sin imagen. Esta acción no elimina la receta y podrás subir otra después.
+          </DialogContentText>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setConfirmarEliminacion(false)} disabled={eliminando}>Cancelar</Button>

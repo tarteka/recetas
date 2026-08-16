@@ -7,6 +7,7 @@ import {
   Dialog,
   DialogActions,
   DialogContent,
+  DialogContentText,
   DialogTitle,
   FormControl,
   InputAdornment,
@@ -21,6 +22,7 @@ import {
 } from '@mui/material';
 import ArchiveOutlinedIcon from '@mui/icons-material/ArchiveOutlined';
 import DeleteForeverOutlinedIcon from '@mui/icons-material/DeleteForeverOutlined';
+import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import RestartAltOutlinedIcon from '@mui/icons-material/RestartAltOutlined';
 import RestoreOutlinedIcon from '@mui/icons-material/RestoreOutlined';
 import SearchOutlinedIcon from '@mui/icons-material/SearchOutlined';
@@ -33,10 +35,10 @@ import {
   ImageField,
   List,
   NumberField,
-  SimpleList,
   TextField,
   useListContext,
   useNotify,
+  useRedirect,
   useRefresh,
 } from 'react-admin';
 import type { RecetaResumenAdmin } from '../types';
@@ -90,7 +92,7 @@ function PanelListado() {
           placeholder="Escribe un título o una descripción"
           value={filterValues.buscar ?? ''}
           onChange={(event) => actualizar('buscar', event.target.value)}
-          slotProps={{ input: { startAdornment: <InputAdornment position="start"><SearchOutlinedIcon /></InputAdornment> } }}
+          slotProps={{ input: { startAdornment: <InputAdornment position="start"><SearchOutlinedIcon aria-hidden="true" /></InputAdornment> } }}
           size="small"
         />
         <FormControl size="small">
@@ -150,6 +152,8 @@ function AccionRapida({ receta, compacto = false }: { receta: RecetaResumenAdmin
   const notify = useNotify();
   const refresh = useRefresh();
   const archivada = Boolean(receta.archivada_en);
+  const dialogoId = `accion-receta-${receta.id}`;
+  const descripcionId = `descripcion-accion-receta-${receta.id}`;
 
   const confirmar = async () => {
     if (!accion) return;
@@ -200,14 +204,16 @@ function AccionRapida({ receta, compacto = false }: { receta: RecetaResumenAdmin
           </IconButton>
         </Tooltip>
       )}
-      <Dialog open={accion !== null} onClose={() => !procesando && setAccion(null)}>
-        <DialogTitle>{accion === 'eliminar' ? 'Eliminar receta definitivamente' : accion === 'restaurar' ? 'Restaurar receta' : 'Archivar receta'}</DialogTitle>
+      <Dialog open={accion !== null} onClose={() => !procesando && setAccion(null)} aria-labelledby={dialogoId} aria-describedby={descripcionId}>
+        <DialogTitle id={dialogoId}>{accion === 'eliminar' ? 'Eliminar receta definitivamente' : accion === 'restaurar' ? 'Restaurar receta' : 'Archivar receta'}</DialogTitle>
         <DialogContent>
-          {accion === 'eliminar'
-            ? `“${receta.titulo}” se eliminará junto con sus ingredientes y pasos. Esta acción no se puede deshacer.`
-            : accion === 'restaurar'
-              ? `“${receta.titulo}” volverá a aparecer en la web pública.`
-              : `“${receta.titulo}” dejará de aparecer en la web pública y podrás restaurarla después.`}
+          <DialogContentText id={descripcionId}>
+            {accion === 'eliminar'
+              ? `“${receta.titulo}” se eliminará junto con sus ingredientes y pasos. Esta acción no se puede deshacer.`
+              : accion === 'restaurar'
+                ? `“${receta.titulo}” volverá a aparecer en la web pública.`
+                : `“${receta.titulo}” dejará de aparecer en la web pública y podrás restaurarla después.`}
+          </DialogContentText>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setAccion(null)} disabled={procesando}>Cancelar</Button>
@@ -234,7 +240,36 @@ function Miniatura({ receta }: { receta: RecetaResumenAdmin }) {
 }
 
 function ListadoMovil() {
-  return <SimpleList<RecetaResumenAdmin> className="lista-recetas-movil" rowClick="edit" leftIcon={(receta) => <Miniatura receta={receta} />} primaryText={(receta) => <Box className="lista-recetas-movil__cabecera"><Typography component="strong">{receta.titulo}</Typography>{receta.archivada_en && <Chip className="lista-recetas__archivada" label="Archivada" size="small" />}<Box className="lista-recetas-movil__meta"><Typography component="span" variant="caption">ID {receta.id}</Typography><Typography component="span" variant="caption">Publicada {fechaPublicacion(receta.creado_en)}</Typography></Box></Box>} secondaryText={(receta) => <Box className="lista-recetas-movil__datos"><Typography variant="body2"><strong>Categorías:</strong> {receta.categorias.join(', ') || 'Sin categoría'}</Typography><Typography variant="body2"><strong>Etiquetas:</strong> {receta.etiquetas.join(', ') || 'Sin etiquetas'}</Typography><AccionRapida receta={receta} compacto /></Box>} />;
+  const { data = [], isPending } = useListContext<RecetaResumenAdmin>();
+  const redirect = useRedirect();
+  return (
+    <Box component="ul" className="lista-recetas-movil" aria-busy={isPending}>
+      {data.map((receta) => (
+        <Box component="li" className="lista-recetas-movil__tarjeta" key={receta.id}>
+          <Miniatura receta={receta} />
+          <Box className="lista-recetas-movil__contenido">
+            <Box className="lista-recetas-movil__cabecera">
+              <Typography component="strong">{receta.titulo}</Typography>
+              {receta.archivada_en && <Chip className="lista-recetas__archivada" label="Archivada" size="small" />}
+              <Box className="lista-recetas-movil__meta"><Typography component="span" variant="caption">ID {receta.id}</Typography><Typography component="span" variant="caption">Publicada {fechaPublicacion(receta.creado_en)}</Typography></Box>
+            </Box>
+            <Box className="lista-recetas-movil__datos">
+              <Typography variant="body2"><strong>Categorías:</strong> {receta.categorias.join(', ') || 'Sin categoría'}</Typography>
+              <Typography variant="body2"><strong>Etiquetas:</strong> {receta.etiquetas.join(', ') || 'Sin etiquetas'}</Typography>
+            </Box>
+            <Box className="lista-recetas-movil__acciones" aria-label={`Acciones para ${receta.titulo}`}>
+              <Tooltip title="Editar receta" arrow>
+                <IconButton color="primary" aria-label={`Editar ${receta.titulo}`} onClick={() => redirect('edit', 'recetas', receta.id)}>
+                  <EditOutlinedIcon />
+                </IconButton>
+              </Tooltip>
+              <AccionRapida receta={receta} compacto />
+            </Box>
+          </Box>
+        </Box>
+      ))}
+    </Box>
+  );
 }
 
 function ListadoEscritorio() {

@@ -18,6 +18,11 @@ body {
   background: #f7f5f0;
 }
 
+:where(a, button, input, textarea, select, [role="button"], [tabindex]):focus-visible {
+  outline: 3px solid #2f6f46;
+  outline-offset: 3px;
+}
+
 .carga-admin {
   display: grid;
   place-content: center;
@@ -48,7 +53,16 @@ body {
 
 @media (prefers-reduced-motion: reduce) {
   .carga-admin__indicador {
-    animation-duration: 1.8s;
+    animation: none;
+  }
+
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: .01ms !important;
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
   }
 }
 
@@ -198,6 +212,8 @@ body {
 }
 
 .lista-recetas__acciones-fila > .MuiIconButton-root {
+  width: 44px;
+  height: 44px;
   border: 1px solid currentColor;
   background: #fff;
 }
@@ -207,17 +223,18 @@ body {
 }
 
 .lista-recetas-movil {
+  display: grid;
+  gap: 10px;
+  margin: 0;
   padding: 8px !important;
+  list-style: none;
   background: transparent;
 }
 
-.lista-recetas-movil .MuiListItem-root {
-  display: block;
-  margin-bottom: 10px;
-}
-
-.lista-recetas-movil .MuiListItemButton-root {
-  align-items: flex-start;
+.lista-recetas-movil__tarjeta {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
   gap: 12px;
   padding: 14px;
   border: 1px solid #dedbd1;
@@ -226,14 +243,10 @@ body {
   box-shadow: 0 3px 12px rgb(38 45 35 / 5%);
 }
 
-.lista-recetas-movil .MuiListItemIcon-root {
-  flex: 0 0 auto;
+.lista-recetas-movil__contenido {
+  display: grid;
+  gap: 8px;
   min-width: 0;
-}
-
-.lista-recetas-movil .MuiListItemText-root {
-  min-width: 0;
-  margin: 0;
 }
 
 .lista-recetas-movil__imagen {
@@ -291,12 +304,26 @@ body {
   line-height: 1.35;
 }
 
+.lista-recetas-movil__acciones {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 3px;
+}
+
+.lista-recetas-movil__acciones > .MuiIconButton-root {
+  width: 44px;
+  height: 44px;
+  border: 1px solid currentColor;
+  background: #fff;
+}
+
 @media (max-width: 420px) {
   .lista-recetas-movil {
     padding: 5px !important;
   }
 
-  .lista-recetas-movil .MuiListItemButton-root {
+  .lista-recetas-movil__tarjeta {
     gap: 10px;
     padding: 12px;
     border-radius: 14px;
