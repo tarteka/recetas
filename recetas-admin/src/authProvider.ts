@@ -37,6 +37,11 @@ function statusFromError(error: unknown): number | undefined {
   return typeof error.status === 'number' ? error.status : undefined;
 }
 
+function nombreVisible(identity: AdminMe): string {
+  const nombre = identity.nombre?.trim().split(/\s+/)[0];
+  return nombre || identity.email.split('@')[0];
+}
+
 export const authProvider: AuthProvider = {
   login: () => {
     window.location.assign('/api/admin/auth/google');
@@ -60,7 +65,7 @@ export const authProvider: AuthProvider = {
     const identity = await obtenerIdentidad();
     return {
       id: identity.id,
-      fullName: identity.nombre ?? identity.email,
+      fullName: nombreVisible(identity),
       avatar: identity.avatar_url ?? undefined,
     };
   },
