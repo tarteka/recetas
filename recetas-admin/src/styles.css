@@ -654,30 +654,73 @@ body {
 }
 
 .editor-receta .RaSimpleFormIterator-buttons {
+  display: flex !important;
+  justify-content: end;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 10px;
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid #e4e1d8;
+}
+
+.editor-receta .RaSimpleFormIterator-buttons .RaSimpleFormIterator-add,
+.editor-receta .RaSimpleFormIterator-buttons .RaSimpleFormIterator-clear {
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-top: 16px;
-}
-
-.editor-receta .RaSimpleFormIterator-buttons .MuiButton-root {
-  min-width: 150px;
-  min-height: 42px;
+  flex: 0 1 154px;
+  width: 154px;
+  min-width: 0;
+  height: 44px;
   margin: 0;
-  padding-inline: 18px;
-  border: 1px solid #bfd0c2;
-  color: #356044;
-  background: #fff;
+  padding: 0;
+  border: 0;
+  background: transparent;
 }
 
-.editor-receta .RaSimpleFormIterator-add.MuiButton-root {
-  margin-top: 0;
+.editor-receta .RaSimpleFormIterator-buttons .RaSimpleFormIterator-clear:empty {
+  display: none;
+}
+
+.editor-receta .RaSimpleFormIterator-buttons .MuiButton-root,
+.editor-receta .RaSimpleFormIterator-buttons .MuiIconButton-root {
+  display: inline-flex;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  min-width: 0;
+  height: 44px;
+  margin: 0;
+  padding: 0 16px;
+  border: 1px solid #bfd0c2;
+  border-radius: 10px;
+  color: #356044;
+  font-size: .875rem;
+  font-weight: 700;
+  line-height: 1;
+  text-transform: none;
+  background: #f3f7f2;
+}
+
+.editor-receta .RaSimpleFormIterator-buttons .MuiButton-root:hover {
+  border-color: #8ead95;
   background: #e7efe8;
 }
 
-.editor-receta .RaSimpleFormIterator-clear.MuiButton-root {
-  border-color: #d6d2c8;
-  color: #6c6b62;
+.editor-receta .RaSimpleFormIterator-buttons .RaSimpleFormIterator-clear .MuiIconButton-root {
+  border-color: #dfc9bd;
+  color: #8a4f32;
+  background: #fff8f4;
+}
+
+.editor-receta .RaSimpleFormIterator-buttons .RaSimpleFormIterator-clear .MuiIconButton-root::after {
+  content: 'Vaciar lista';
+  white-space: nowrap;
+}
+
+.editor-receta .RaSimpleFormIterator-buttons .RaSimpleFormIterator-clear .MuiIconButton-root:hover {
+  border-color: #c99c86;
+  background: #faeee7;
 }
 
 .editor-receta .editor-receta__toolbar > .MuiButton-root {
@@ -717,11 +760,19 @@ body {
   }
 
   .editor-receta .RaSimpleFormIterator-buttons {
-    display: grid;
-    grid-template-columns: 1fr;
+    justify-content: center;
+    flex-wrap: nowrap;
+    gap: 8px;
+    margin-top: 14px;
+    padding-top: 14px;
   }
 
   .editor-receta .RaSimpleFormIterator-buttons .MuiButton-root,
+  .editor-receta .RaSimpleFormIterator-buttons .MuiIconButton-root {
+    width: 100%;
+    min-width: 0;
+  }
+
   .editor-receta .editor-receta__toolbar > .MuiButton-root {
     width: 100%;
     min-width: 0;
