@@ -61,7 +61,8 @@ function PanelListado() {
     const cargar = async (endpoint: string, asignar: (opciones: Opcion[]) => void) => {
       const response = await fetch(endpoint, { credentials: 'include', signal: controller.signal });
       if (!response.ok) return;
-      const datos = await response.json() as TaxonomiaApi[];
+      const body = await response.json() as TaxonomiaApi[] | { datos: TaxonomiaApi[] };
+      const datos = Array.isArray(body) ? body : body.datos;
       asignar(datos.map(({ nombre, slug }) => ({ id: slug, nombre })));
     };
     void cargar('/api/admin/categorias', setCategorias);

@@ -8,11 +8,13 @@ use App\Config\AdminAuthConfig;
 use App\Controller\AdminAuthController;
 use App\Controller\ImagenController;
 use App\Controller\RecetaController;
+use App\Controller\TaxonomiaController;
 use App\Middleware\AdminCsrfMiddleware;
 use App\Middleware\AdminSessionMiddleware;
 use App\Middleware\ApiTokenMiddleware;
 use App\Repository\AdminSessionRepository;
 use App\Repository\RecetaRepository;
+use App\Repository\TaxonomiaRepository;
 use App\Service\AdminSessionService;
 use App\Service\ImagenService;
 use App\Service\RecetaValidator;
@@ -78,6 +80,7 @@ try {
     };
 
     $recetaController = new RecetaController($recetas, new RecetaValidator());
+    $taxonomiaController = new TaxonomiaController(new TaxonomiaRepository($pdo));
     $imagenController = new ImagenController($recetas, $imagenService, $directorioImagenes);
     $authController = new AdminAuthController($config, $oidc, $sesiones);
     $sessionMiddleware = new AdminSessionMiddleware($sesiones);
@@ -91,6 +94,7 @@ try {
     $registrarRutas(
         $app,
         $recetaController,
+        $taxonomiaController,
         $imagenController,
         $tokenMiddleware,
         $authController,
@@ -130,6 +134,24 @@ try {
     $origenExterno = $app->handle($crearRequest('POST', '/admin/recetas', '{}', true, 'https://evil.example'));
     comprobarHttp($origenExterno->getStatusCode() === 403, 'Una escritura con origen externo superó CSRF');
 
+    // CRUD administrativo de taxonomías, incluidos duplicados y términos libres.
+    $categoriaCreada = $app->handle($crearRequest('POST', '/admin/categorias', json_encode(['nombre' => 'Categoría temporal'], JSON_THROW_ON_ERROR)));
+    comprobarHttp($categoriaCreada->getStatusCode() === 201, 'No se creó una categoría administrativa');
+    $categoriaId = (int) (jsonRespuesta($categoriaCreada)['id'] ?? 0);
+    comprobarHttp($categoriaId > 0, 'La categoría creada no devolvió ID');
+    comprobarHttp($app->handle($crearRequest('POST', '/admin/categorias', json_encode(['nombre' => 'Categoría temporal'], JSON_THROW_ON_ERROR)))->getStatusCode() === 409, 'Se permitió una categoría duplicada');
+    $categoriaActualizada = $app->handle($crearRequest('PUT', '/admin/categorias/' . $categoriaId, json_encode(['nombre' => 'Categoría renombrada'], JSON_THROW_ON_ERROR)));
+    comprobarHttp($categoriaActualizada->getStatusCode() === 200, 'No se actualizó la categoría');
+    comprobarHttp((jsonRespuesta($categoriaActualizada)['slug'] ?? null) === 'categoria-renombrada', 'No se regeneró el slug de la categoría');
+    $listadoCategorias = jsonRespuesta($app->handle($crearRequest('GET', '/admin/categorias')));
+    comprobarHttp(($listadoCategorias['paginacion']['total'] ?? 0) === 1, 'El listado administrativo no incluye categorías sin recetas');
+    comprobarHttp($app->handle($crearRequest('DELETE', '/admin/categorias/' . $categoriaId))->getStatusCode() === 204, 'No se eliminó una categoría sin uso');
+
+    $etiquetaCreada = $app->handle($crearRequest('POST', '/admin/etiquetas', json_encode(['nombre' => 'Etiqueta temporal'], JSON_THROW_ON_ERROR)));
+    comprobarHttp($etiquetaCreada->getStatusCode() === 201, 'No se creó una etiqueta administrativa');
+    $etiquetaId = (int) (jsonRespuesta($etiquetaCreada)['id'] ?? 0);
+    comprobarHttp($app->handle($crearRequest('DELETE', '/admin/etiquetas/' . $etiquetaId))->getStatusCode() === 204, 'No se eliminó una etiqueta sin uso');
+
     // La validación devuelve 422 y no filtra datos internos.
     $invalida = $app->handle($crearRequest('POST', '/admin/recetas', json_encode([
         'titulo' => ' ', 'ingredientes' => [], 'pasos' => [],
@@ -156,6 +178,9 @@ try {
     comprobarHttp($creada->getStatusCode() === 201, 'No se creó la receta HTTP');
     $id = (int) (jsonRespuesta($creada)['id'] ?? 0);
     comprobarHttp($id > 0, 'La creación no devolvió un ID');
+
+    $categoriaEnUsoId = (int) $pdo->query("SELECT id FROM categorias WHERE nombre = 'Pruebas'")->fetchColumn();
+    comprobarHttp($app->handle($crearRequest('DELETE', '/admin/categorias/' . $categoriaEnUsoId))->getStatusCode() === 409, 'Se eliminó una categoría asociada a una receta');
 
     $publica = $app->handle($crearRequest('GET', '/recetas/' . $id, null, false, null));
     comprobarHttp($publica->getStatusCode() === 200, 'La receta creada no es pública');

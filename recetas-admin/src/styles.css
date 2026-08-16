@@ -219,6 +219,114 @@ body {
   background: #fbfaf7;
 }
 
+.taxonomias__cabecera {
+  width: 100%;
+}
+
+.taxonomias__panel {
+  width: 100%;
+  margin-bottom: 20px;
+}
+
+.taxonomias__filtros {
+  grid-template-columns: minmax(260px, 1fr) minmax(190px, 260px) auto;
+}
+
+.taxonomias-movil__tarjeta {
+  grid-template-columns: auto minmax(0, 1fr);
+}
+
+.taxonomias-movil__tarjeta strong {
+  font-family: Georgia, serif;
+  font-size: 1rem;
+}
+
+.taxonomias-movil__icono {
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  color: #356044;
+  font-family: Georgia, serif;
+  font-size: 1.5rem;
+  font-weight: 700;
+  background: #e7efe8;
+}
+
+.taxonomias-movil__acciones {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+  padding-top: 8px;
+  border-top: 1px solid #ebe8df;
+}
+
+.taxonomias-movil__acciones .MuiIconButton-root,
+.taxonomias-movil__acciones .MuiButton-root {
+  min-width: 44px;
+  min-height: 44px;
+}
+
+.taxonomias__eliminar-icono.MuiButton-root {
+  width: 44px;
+  min-width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 1px solid currentColor;
+  border-radius: 12px;
+  color: #a33b3b;
+  background: #fff;
+}
+
+.taxonomias__eliminar-icono.MuiButton-root .MuiButton-startIcon {
+  margin: 0;
+}
+
+.taxonomias__eliminar-icono.MuiButton-root:hover {
+  background: #faeeee;
+}
+
+.taxonomias__campos {
+  display: grid;
+  gap: 4px;
+  width: 100%;
+  max-width: 900px;
+}
+
+.taxonomias__uso {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 12px;
+  padding: 16px;
+  border: 1px solid #dedbd1;
+  border-radius: 14px;
+  background: #fbfaf7;
+}
+
+.editor-receta .taxonomias__toolbar > .taxonomias__eliminar {
+  margin-right: auto;
+}
+
+@media (max-width: 600px) {
+  .taxonomias__filtros {
+    grid-template-columns: 1fr;
+  }
+
+  .taxonomias-movil__icono {
+    width: 46px;
+    height: 46px;
+  }
+
+  .editor-receta .taxonomias__toolbar > .taxonomias__eliminar {
+    grid-column: 1 / -1;
+    margin-right: 0;
+  }
+}
+
 .lista-recetas__accion-movil {
   width: max-content;
   margin-top: 3px;

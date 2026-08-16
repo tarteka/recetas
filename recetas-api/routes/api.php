@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Controller\AdminAuthController;
 use App\Controller\ImagenController;
 use App\Controller\RecetaController;
+use App\Controller\TaxonomiaController;
 use App\Middleware\AdminCsrfMiddleware;
 use App\Middleware\AdminSessionMiddleware;
 use App\Middleware\ApiTokenMiddleware;
@@ -13,6 +14,7 @@ use Slim\App;
 return static function (
     App $app,
     RecetaController $recetaController,
+    TaxonomiaController $taxonomiaController,
     ImagenController $imagenController,
     ApiTokenMiddleware $apiTokenMiddleware,
     AdminAuthController $adminAuthController,
@@ -45,10 +47,11 @@ return static function (
         ->add($adminSessionMiddleware);
     $app->get('/admin/recetas', [$recetaController, 'listarAdmin'])
         ->add($adminSessionMiddleware);
-    $app->get('/admin/categorias', [$recetaController, 'listarCategoriasAdmin'])
-        ->add($adminSessionMiddleware);
-    $app->get('/admin/etiquetas', [$recetaController, 'listarEtiquetasAdmin'])
-        ->add($adminSessionMiddleware);
+    $app->get('/admin/{tipo:categorias|etiquetas}', [$taxonomiaController, 'listar'])->add($adminSessionMiddleware);
+    $app->post('/admin/{tipo:categorias|etiquetas}', [$taxonomiaController, 'crear'])->add($adminCsrfMiddleware)->add($adminSessionMiddleware);
+    $app->get('/admin/{tipo:categorias|etiquetas}/{id:[0-9]+}', [$taxonomiaController, 'obtener'])->add($adminSessionMiddleware);
+    $app->put('/admin/{tipo:categorias|etiquetas}/{id:[0-9]+}', [$taxonomiaController, 'actualizar'])->add($adminCsrfMiddleware)->add($adminSessionMiddleware);
+    $app->delete('/admin/{tipo:categorias|etiquetas}/{id:[0-9]+}', [$taxonomiaController, 'eliminar'])->add($adminCsrfMiddleware)->add($adminSessionMiddleware);
     $app->post('/admin/recetas', [$recetaController, 'crear'])
         ->add($adminCsrfMiddleware)
         ->add($adminSessionMiddleware);

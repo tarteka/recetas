@@ -3,6 +3,8 @@ import type {
   CreateParams,
   CreateResult,
   DataProvider,
+  DeleteParams,
+  DeleteResult,
   GetListParams,
   GetListResult,
   GetOneParams,
@@ -14,9 +16,10 @@ import type {
 import type { RespuestaRecetas } from './types';
 
 const RECURSO_RECETAS = 'recetas';
+const RECURSOS_TAXONOMIA = ['categorias', 'etiquetas'];
 
 function comprobarRecurso(resource: string): void {
-  if (resource !== RECURSO_RECETAS) {
+  if (resource !== RECURSO_RECETAS && !RECURSOS_TAXONOMIA.includes(resource)) {
     throw new Error(`Recurso no soportado: ${resource}`);
   }
 }
@@ -39,6 +42,7 @@ async function solicitarJson(url: string, init: RequestInit = {}): Promise<unkno
       : 'No se pudo completar la petición';
     throw new HttpError(message, response.status, body);
   }
+  if (response.status === 204) return null;
   return response.json() as Promise<unknown>;
 }
 
@@ -79,6 +83,20 @@ async function getList<RecordType extends RaRecord = RaRecord>(
 ): Promise<GetListResult<RecordType>> {
   comprobarRecurso(resource);
 
+  if (RECURSOS_TAXONOMIA.includes(resource)) {
+    const query = new URLSearchParams({
+      pagina: String(params.pagination?.page ?? 1),
+      por_pagina: String(params.pagination?.perPage ?? 15),
+      ordenar: params.sort?.field ?? 'nombre',
+      direccion: params.sort?.order ?? 'ASC',
+    });
+    const buscarTaxonomia = valorFiltro(params.filter, 'buscar') ?? valorFiltro(params.filter, 'q');
+    if (buscarTaxonomia) query.set('buscar', buscarTaxonomia);
+    const response = await solicitarJson(`/api/admin/${resource}?${query}`);
+    if (!esRespuestaRecetas(response)) throw new Error('La API devolvió un listado no válido');
+    return { data: response.datos as unknown as RecordType[], total: response.paginacion.total };
+  }
+
   const query = new URLSearchParams({
     pagina: String(params.pagination?.page ?? 1),
     por_pagina: String(params.pagination?.perPage ?? 10),
@@ -110,6 +128,11 @@ async function getOne<RecordType extends RaRecord = RaRecord>(
   params: GetOneParams<RecordType>,
 ): Promise<GetOneResult<RecordType>> {
   comprobarRecurso(resource);
+  if (RECURSOS_TAXONOMIA.includes(resource)) {
+    const response = await solicitarJson(`/api/admin/${resource}/${encodeURIComponent(String(params.id))}`);
+    if (typeof response !== 'object' || response === null || !('id' in response)) throw new Error('La API devolvió un término no válido');
+    return { data: response as RecordType };
+  }
   const response = await solicitarJson(`/api/admin/recetas/${encodeURIComponent(String(params.id))}`);
   if (typeof response !== 'object' || response === null || !('id' in response)) {
     throw new Error('La API devolvió una receta no válida');
@@ -152,6 +175,12 @@ async function create<RecordType extends RaRecord = RaRecord>(
   params: CreateParams<RecordType>,
 ): Promise<CreateResult<RecordType>> {
   comprobarRecurso(resource);
+  if (RECURSOS_TAXONOMIA.includes(resource)) {
+    const response = await solicitarJson(`/api/admin/${resource}`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(params.data),
+    });
+    return { data: response as RecordType };
+  }
   const response = await solicitarJson('/api/admin/recetas', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -168,6 +197,12 @@ async function update<RecordType extends RaRecord = RaRecord>(
   params: UpdateParams<RecordType>,
 ): Promise<UpdateResult<RecordType>> {
   comprobarRecurso(resource);
+  if (RECURSOS_TAXONOMIA.includes(resource)) {
+    const response = await solicitarJson(`/api/admin/${resource}/${encodeURIComponent(String(params.id))}`, {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(params.data),
+    });
+    return { data: response as RecordType };
+  }
   const response = await solicitarJson(
     `/api/admin/recetas/${encodeURIComponent(String(params.id))}`,
     {
@@ -189,6 +224,13 @@ function noSoportado(operacion: string, resource: string): Promise<never> {
   return Promise.reject(new Error(`${operacion} no está disponible para ${resource} en esta versión de solo lectura`));
 }
 
+async function eliminar<RecordType extends RaRecord = RaRecord>(resource: string, params: DeleteParams<RecordType>): Promise<DeleteResult<RecordType>> {
+  comprobarRecurso(resource);
+  if (!RECURSOS_TAXONOMIA.includes(resource)) return noSoportado('delete', resource);
+  await solicitarJson(`/api/admin/${resource}/${encodeURIComponent(String(params.id))}`, { method: 'DELETE' });
+  return { data: (params.previousData ?? { id: params.id }) as RecordType };
+}
+
 export const dataProvider: DataProvider = {
   getList,
   getOne,
@@ -197,6 +239,6 @@ export const dataProvider: DataProvider = {
   create,
   update,
   updateMany: (resource) => noSoportado('updateMany', resource),
-  delete: (resource) => noSoportado('delete', resource),
+  delete: eliminar,
   deleteMany: (resource) => noSoportado('deleteMany', resource),
 };

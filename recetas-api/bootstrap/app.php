@@ -7,12 +7,14 @@ use App\Config\AdminAuthConfig;
 use App\Controller\AdminAuthController;
 use App\Controller\ImagenController;
 use App\Controller\RecetaController;
+use App\Controller\TaxonomiaController;
 use App\Database;
 use App\Middleware\AdminCsrfMiddleware;
 use App\Middleware\AdminSessionMiddleware;
 use App\Middleware\ApiTokenMiddleware;
 use App\Repository\AdminSessionRepository;
 use App\Repository\RecetaRepository;
+use App\Repository\TaxonomiaRepository;
 use App\Service\AdminSessionService;
 use App\Service\ImagenService;
 use App\Service\RecetaValidator;
@@ -28,6 +30,7 @@ $app->addErrorMiddleware(false, true, true);
 $pdo = Database::conectar();
 $repository = new RecetaRepository($pdo);
 $recetaController = new RecetaController($repository, new RecetaValidator());
+$taxonomiaController = new TaxonomiaController(new TaxonomiaRepository($pdo));
 $imagenController = new ImagenController(
     $repository,
     new ImagenService()
@@ -50,6 +53,7 @@ $adminCsrfMiddleware = new AdminCsrfMiddleware($adminConfig);
  * @var callable(
  *     App,
  *     RecetaController,
+ *     TaxonomiaController,
  *     ImagenController,
  *     ApiTokenMiddleware,
  *     AdminAuthController,
@@ -61,6 +65,7 @@ $registrarRutas = require __DIR__ . '/../routes/api.php';
 $registrarRutas(
     $app,
     $recetaController,
+    $taxonomiaController,
     $imagenController,
     $apiTokenMiddleware,
     $adminAuthController,
