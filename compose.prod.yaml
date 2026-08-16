@@ -2,9 +2,8 @@ name: recetas-produccion
 
 services:
   recetas-api:
-    build:
-      context: ./recetas-api
-      dockerfile: Dockerfile.prod
+    image: ghcr.io/tarteka/recetas-api:${RELEASE_TAG:-latest}
+    pull_policy: always
     environment:
       RECETAS_API_TOKEN: ${RECETAS_API_TOKEN:?Configura RECETAS_API_TOKEN en .env}
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
@@ -28,9 +27,8 @@ services:
       start_period: 15s
 
   recetas-web:
-    build:
-      context: ./recetas-web
-      dockerfile: Dockerfile.prod
+    image: ghcr.io/tarteka/recetas-web:${RELEASE_TAG:-latest}
+    pull_policy: always
     environment:
       RECETAS_DOMINIO: ${RECETAS_DOMINIO:-recetas.proyectozero.org}
     ports:
@@ -50,9 +48,8 @@ services:
     restart: unless-stopped
 
   recetas-admin:
-    build:
-      context: ./recetas-admin
-      dockerfile: Dockerfile.prod
+    image: ghcr.io/tarteka/recetas-admin:${RELEASE_TAG:-latest}
+    pull_policy: always
     networks:
       - recetas-interna
     restart: unless-stopped

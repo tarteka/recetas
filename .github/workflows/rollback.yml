@@ -1,0 +1,94 @@
+name: Rollback - Manual
+
+on:
+  workflow_dispatch:
+    inputs:
+      commit_sha:
+        description: 'Commit SHA para hacer rollback'
+        required: true
+        type: string
+
+jobs:
+  rollback:
+    name: Rollback a versión anterior
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validar SHA
+        run: |
+          if [ ${#COMMIT_SHA} -ne 40 ]; then
+            echo "❌ Commit SHA inválido: ${{ inputs.commit_sha }}"
+            exit 1
+          fi
+          echo "✅ SHA válido: ${{ inputs.commit_sha }}"
+        env:
+          COMMIT_SHA: ${{ inputs.commit_sha }}
+
+      - name: Ejecutar rollback en VPS
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: 22
+          script: |
+            set -e
+
+            cd /opt/recetas
+
+            ROLLBACK_SHA=${{ inputs.commit_sha }}
+
+            echo "⏮️  Iniciando rollback..."
+            echo "Versión anterior: $ROLLBACK_SHA"
+            echo ""
+
+            # 1. Descargar imágenes de versión anterior
+            echo "📥 Descargando imágenes de GHCR..."
+            export RELEASE_TAG=$ROLLBACK_SHA
+            docker compose -f compose.prod.yaml pull || {
+              echo "❌ Error: No se pueden descargar imágenes del SHA $ROLLBACK_SHA"
+              echo "Verifica que existan en GHCR"
+              exit 1
+            }
+
+            # 2. Detener servicios actuales
+            echo "🛑 Deteniendo servicios actuales..."
+            docker compose -f compose.prod.yaml down
+
+            # 3. Levantar servicios antiguos
+            echo "🆙 Levantando servicios antiguos..."
+            docker compose -f compose.prod.yaml up -d || {
+              echo "❌ Error al iniciar servicios"
+              exit 1
+            }
+
+            # 4. Esperar inicialización
+            echo "⏳ Esperando servicios..."
+            sleep 15
+
+            # 5. Health check
+            echo "🏥 Verificando salud..."
+            if curl -f http://127.0.0.1:8080/salud > /dev/null 2>&1; then
+              echo "✅ API respondiendo correctamente"
+            else
+              echo "❌ API no responde"
+              docker compose -f compose.prod.yaml logs recetas-api | tail -20
+              exit 1
+            fi
+
+            echo ""
+            echo "✅ Rollback completado"
+            echo "Versión activa: $ROLLBACK_SHA"
+
+      - name: Falló el rollback ❌
+        if: failure()
+        run: |
+          echo "❌ Rollback fallido"
+          echo ""
+          echo "Pasos manuales:"
+          echo "1. Conectarse al VPS"
+          echo "2. cd /opt/recetas"
+          echo "3. docker compose -f compose.prod.yaml logs"
+          echo "4. Revisar qué falló"

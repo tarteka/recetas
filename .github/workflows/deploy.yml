@@ -1,0 +1,99 @@
+name: Deploy - Producción
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    name: Desplegar a VPS
+    runs-on: ubuntu-latest
+    # Solo desplegar si los builds fueron exitosos
+    # (este job se ejecuta después de build-publish automáticamente)
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Desplegar a VPS
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: 22
+          script: |
+            set -e
+
+            cd /opt/recetas
+
+            echo "🚀 Iniciando despliegue..."
+            echo "Commit SHA: ${{ github.sha }}"
+            echo ""
+
+            # 1. Descargar imágenes
+            echo "📥 Descargando imágenes de GHCR..."
+            export RELEASE_TAG=${{ github.sha }}
+            docker compose -f compose.prod.yaml pull || {
+              echo "❌ Error al descargar imágenes"
+              exit 1
+            }
+
+            # 2. Levantar servicios
+            echo "🆙 Levantando servicios..."
+            docker compose -f compose.prod.yaml up -d || {
+              echo "❌ Error al iniciar servicios"
+              exit 1
+            }
+
+            # 3. Esperar a que estén listos
+            echo "⏳ Esperando servicios..."
+            sleep 15
+
+            # 4. Health check - API
+            echo "🏥 Verificando salud de API..."
+            if curl -f http://127.0.0.1:8080/salud > /dev/null 2>&1; then
+              echo "✅ API respondiendo correctamente"
+            else
+              echo "❌ API no responde"
+              docker compose -f compose.prod.yaml logs recetas-api | tail -20
+              exit 1
+            fi
+
+            # 5. Verificar datos persistentes
+            echo "💾 Verificando datos persistentes..."
+            if [ -f "datos/recetas.sqlite" ]; then
+              echo "✅ Base de datos intacta"
+            else
+              echo "⚠️  Advertencia: sqlite no encontrado (primera vez?)"
+            fi
+
+            if [ -d "datos/imagenes" ]; then
+              count=$(find datos/imagenes -type f 2>/dev/null | wc -l)
+              echo "✅ Imágenes: $count archivos"
+            fi
+
+            echo ""
+            echo "✅ Despliegue completado exitosamente"
+            echo "Release: $RELEASE_TAG"
+            echo ""
+            echo "URLs:"
+            echo "  - https://recetas.proyectozero.org (web)"
+            echo "  - https://recetas.proyectozero.org/admin (admin)"
+            echo "  - http://127.0.0.1:8080/salud (API health)"
+
+      - name: Falló el despliegue ❌
+        if: failure()
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: 22
+          script: |
+            cd /opt/recetas
+            echo "❌ Despliegue fallido. Revisando logs..."
+            docker compose -f compose.prod.yaml logs --tail=50
+
+            echo ""
+            echo "⚠️  Para rollback manual:"
+            echo "   RELEASE_TAG=<commit_sha_anterior> docker compose -f compose.prod.yaml up -d"

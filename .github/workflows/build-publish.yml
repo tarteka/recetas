@@ -1,0 +1,78 @@
+name: Build & Publish - GHCR
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  build-publish:
+    name: Build y publicar en GHCR
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    strategy:
+      matrix:
+        include:
+          - name: recetas-api
+            context: ./recetas-api
+            dockerfile: ./recetas-api/Dockerfile.prod
+          - name: recetas-web
+            context: ./recetas-web
+            dockerfile: ./recetas-web/Dockerfile.prod
+          - name: recetas-admin
+            context: ./recetas-admin
+            dockerfile: ./recetas-admin/Dockerfile.prod
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Obtener metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            ghcr.io/${{ github.repository }}/${{ matrix.name }}
+          tags: |
+            type=sha,prefix={{branch}}-
+            type=ref,event=branch
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build y push - ${{ matrix.name }}
+        uses: docker/build-push-action@v5
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.dockerfile }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            BUILD_COMMIT_SHA=${{ github.sha }}
+            BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ')
+
+  notify:
+    name: Notificar
+    runs-on: ubuntu-latest
+    needs: build-publish
+    if: always()
+
+    steps:
+      - name: Resumen
+        run: |
+          echo "✅ Imágenes publicadas en GHCR"
+          echo "Commit SHA: ${{ github.sha }}"
+          echo ""
+          echo "ghcr.io/${{ github.repository }}/recetas-api:${{ github.sha }}"
+          echo "ghcr.io/${{ github.repository }}/recetas-web:${{ github.sha }}"
+          echo "ghcr.io/${{ github.repository }}/recetas-admin:${{ github.sha }}"

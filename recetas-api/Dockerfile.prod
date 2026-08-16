@@ -1,5 +1,9 @@
 FROM php:8.4-apache
 
+LABEL org.opencontainers.image.source="https://github.com/tarteka/recetas"
+LABEL org.opencontainers.image.title="recetas-api"
+LABEL org.opencontainers.image.description="API REST para gestión de recetas"
+
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         git \

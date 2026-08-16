@@ -1,0 +1,98 @@
+name: CI - Validación
+
+on:
+  pull_request:
+  push:
+    branches: [ main ]
+
+jobs:
+  backend:
+    name: Backend - PHP
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validar composer.json
+        run: |
+          cd recetas-api
+          composer validate --no-check-all
+
+      - name: Verificar sintaxis PHP
+        run: |
+          find recetas-api/src -name "*.php" -exec php -l {} \;
+          find recetas-api/bootstrap -name "*.php" -exec php -l {} \;
+
+  frontend-web:
+    name: Frontend Web - React/TypeScript
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: recetas-web/package-lock.json
+
+      - name: Instalar dependencias
+        run: cd recetas-web && npm ci
+
+      - name: Lint (ESLint)
+        run: cd recetas-web && npm run lint
+
+      - name: Build
+        run: cd recetas-web && npm run build
+
+  frontend-admin:
+    name: Frontend Admin - React-admin/TypeScript
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: recetas-admin/package-lock.json
+
+      - name: Instalar dependencias
+        run: cd recetas-admin && npm ci
+
+      - name: Lint (ESLint)
+        run: cd recetas-admin && npm run lint
+
+      - name: Build
+        run: cd recetas-admin && npm run build
+
+  docker:
+    name: Docker - Validar builds
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build recetas-api
+        uses: docker/build-push-action@v5
+        with:
+          context: ./recetas-api
+          file: ./recetas-api/Dockerfile.prod
+          push: false
+
+      - name: Build recetas-web
+        uses: docker/build-push-action@v5
+        with:
+          context: ./recetas-web
+          file: ./recetas-web/Dockerfile.prod
+          push: false
+
+      - name: Build recetas-admin
+        uses: docker/build-push-action@v5
+        with:
+          context: ./recetas-admin
+          file: ./recetas-admin/Dockerfile.prod
+          push: false
