@@ -14,7 +14,7 @@ import {
 import CloudUploadOutlinedIcon from '@mui/icons-material/CloudUploadOutlined';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutlined';
 import ImageOutlinedIcon from '@mui/icons-material/ImageOutlined';
-import { useNotify, useRecordContext } from 'react-admin';
+import { useBlocker, useNotify, useRecordContext, useResourceContext } from 'react-admin';
 import { useFormContext } from 'react-hook-form';
 
 const BYTES_MAXIMOS = 10 * 1024 * 1024;
@@ -38,6 +38,7 @@ function tamanoLegible(bytes: number): string {
 
 export function ImagenUpload() {
   const receta = useRecordContext<RecetaConImagen>();
+  const resource = useResourceContext();
   const { setValue } = useFormContext();
   const notify = useNotify();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -54,6 +55,33 @@ export function ImagenUpload() {
   useEffect(() => () => {
     if (preview) URL.revokeObjectURL(preview);
   }, [preview]);
+
+  const raizFormulario = resource && receta?.id !== undefined ? `/${resource}/${receta.id}` : undefined;
+
+  const blocker = useBlocker(({ nextLocation }) => {
+    if (!archivo || !raizFormulario) return false;
+    return !nextLocation.pathname.startsWith(raizFormulario);
+  });
+
+  useEffect(() => {
+    if (blocker.state !== 'blocked') return;
+    const salir = window.confirm(
+      'Has seleccionado una imagen que todavía no has guardado. Si sales ahora, se perderá. ¿Salir de todos modos?',
+    );
+    if (salir) blocker.proceed?.();
+    else blocker.reset?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [blocker.state]);
+
+  useEffect(() => {
+    if (!archivo) return;
+    const alSalir = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = true;
+    };
+    window.addEventListener('beforeunload', alSalir);
+    return () => window.removeEventListener('beforeunload', alSalir);
+  }, [archivo]);
 
   const limpiarSeleccion = () => {
     setArchivo(null);

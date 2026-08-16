@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   Autocomplete,
   Box,
@@ -55,6 +55,15 @@ function PanelListado() {
   const [filtrosAbiertos, setFiltrosAbiertos] = useState(false);
   const [categorias, setCategorias] = useState<Opcion[]>([]);
   const [etiquetas, setEtiquetas] = useState<Opcion[]>([]);
+  const filtroBuscar = String(filterValues.buscar ?? '');
+  const [buscarLocal, setBuscarLocal] = useState(filtroBuscar);
+  const [ultimoFiltroBuscar, setUltimoFiltroBuscar] = useState(filtroBuscar);
+  const primerRenderBusquedaRef = useRef(true);
+
+  if (filtroBuscar !== ultimoFiltroBuscar) {
+    setUltimoFiltroBuscar(filtroBuscar);
+    setBuscarLocal(filtroBuscar);
+  }
 
   useEffect(() => {
     const controller = new AbortController();
@@ -76,6 +85,17 @@ function PanelListado() {
     else delete siguientes[campo];
     setFilters(siguientes, []);
   };
+
+  useEffect(() => {
+    if (primerRenderBusquedaRef.current) {
+      primerRenderBusquedaRef.current = false;
+      return;
+    }
+    const temporizador = setTimeout(() => actualizar('buscar', buscarLocal), 400);
+    return () => clearTimeout(temporizador);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [buscarLocal]);
+
   const limpiar = () => setFilters({ estado: 'activas' }, []);
   const filtrosActivos = Boolean(filterValues.buscar || filterValues.categoria || filterValues.etiqueta || filterValues.estado !== 'activas');
   const categoriaActual = categorias.find(({ id }) => id === filterValues.categoria) ?? null;
@@ -109,8 +129,8 @@ function PanelListado() {
           className="lista-recetas__buscar"
           label="Buscar recetas"
           placeholder="Escribe un título o una descripción"
-          value={filterValues.buscar ?? ''}
-          onChange={(event) => actualizar('buscar', event.target.value)}
+          value={buscarLocal}
+          onChange={(event) => setBuscarLocal(event.target.value)}
           slotProps={{ input: { startAdornment: <InputAdornment position="start"><SearchOutlinedIcon aria-hidden="true" /></InputAdornment> } }}
           size="small"
         />

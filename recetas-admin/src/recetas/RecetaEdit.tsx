@@ -108,7 +108,7 @@ export function RecetaEdit() {
 
         <TabbedForm.Tab label="Ingredientes">
           <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            Arrastra las filas para cambiar el orden de presentación.
+            Usa las flechas de cada fila para cambiar el orden de presentación.
           </Typography>
           <ArrayInput source="ingredientes" label={false} validate={validarLista('Añade al menos un ingrediente')} fullWidth>
             <SimpleFormIterator inline fullWidth>

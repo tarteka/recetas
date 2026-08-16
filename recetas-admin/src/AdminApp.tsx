@@ -38,10 +38,31 @@ export function AdminApp() {
         requireAuth
         title="Mi Recetario"
         theme={temaRecetario}
+        disableTelemetry
       >
-        <Resource name="recetas" list={RecetaList} edit={RecetaEdit} create={RecetaCreate} options={{ label: 'Recetas' }} />
-        <Resource name="categorias" icon={CategoryOutlinedIcon} list={TaxonomiaList} edit={TaxonomiaEdit} create={TaxonomiaCreate} options={{ label: 'Categorías' }} />
-        <Resource name="etiquetas" icon={LocalOfferOutlinedIcon} list={TaxonomiaList} edit={TaxonomiaEdit} create={TaxonomiaCreate} options={{ label: 'Etiquetas' }} />
+        <Resource
+          name="recetas"
+          list={RecetaList}
+          edit={RecetaEdit}
+          create={RecetaCreate}
+          options={{ label: 'Recetas' }}
+        />
+        <Resource
+          name="categorias"
+          icon={CategoryOutlinedIcon}
+          list={TaxonomiaList}
+          edit={TaxonomiaEdit}
+          create={TaxonomiaCreate}
+          options={{ label: 'Categorías' }}
+        />
+        <Resource
+          name="etiquetas"
+          icon={LocalOfferOutlinedIcon}
+          list={TaxonomiaList}
+          edit={TaxonomiaEdit}
+          create={TaxonomiaCreate}
+          options={{ label: 'Etiquetas' }}
+        />
       </Admin>
     </Suspense>
   );
