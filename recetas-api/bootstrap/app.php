@@ -15,6 +15,7 @@ use App\Repository\AdminSessionRepository;
 use App\Repository\RecetaRepository;
 use App\Service\AdminSessionService;
 use App\Service\ImagenService;
+use App\Service\RecetaValidator;
 use Slim\App;
 use Slim\Factory\AppFactory;
 
@@ -26,7 +27,7 @@ $app->addErrorMiddleware(false, true, true);
 
 $pdo = Database::conectar();
 $repository = new RecetaRepository($pdo);
-$recetaController = new RecetaController($repository);
+$recetaController = new RecetaController($repository, new RecetaValidator());
 $imagenController = new ImagenController(
     $repository,
     new ImagenService()

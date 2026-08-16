@@ -8,13 +8,21 @@ import {
   TabbedForm,
   TabbedFormTabs,
   TextInput,
-  minValue,
   required,
   useRedirect,
 } from 'react-admin';
 import { ClasificacionInput } from './ClasificacionInput';
 import { ImagenUpload } from './ImagenUpload';
 import { AccionArchivado } from './AccionArchivado';
+import {
+  validarCantidad,
+  validarCoherenciaReceta,
+  validarLista,
+  validarMinutos,
+  validarRaciones,
+  validarTitulo,
+  validarUrlOpcional,
+} from './validacionReceta';
 
 function BarraGuardado() {
   const redirect = useRedirect();
@@ -34,9 +42,6 @@ function BarraGuardado() {
   );
 }
 
-const validarTitulo = [required('El título es obligatorio')];
-const validarPositivo = [minValue(0, 'No puede ser negativo')];
-
 export function RecetaEdit() {
   return (
     <Edit
@@ -54,6 +59,7 @@ export function RecetaEdit() {
         toolbar={<BarraGuardado />}
         tabs={<TabbedFormTabs variant="scrollable" scrollButtons="auto" allowScrollButtonsMobile />}
         warnWhenUnsavedChanges
+        validate={validarCoherenciaReceta}
       >
         <TabbedForm.Tab label="Información">
           <Box sx={{ width: '100%' }}>
@@ -77,23 +83,23 @@ export function RecetaEdit() {
                 gap: 2,
               }}
             >
-              <NumberInput source="raciones" label="Raciones" validate={validarPositivo} fullWidth />
+              <NumberInput source="raciones" label="Raciones" validate={validarRaciones} fullWidth />
               <NumberInput
                 source="tiempo_preparacion_min"
                 label="Preparación (min)"
-                validate={validarPositivo}
+                validate={validarMinutos}
                 fullWidth
               />
               <NumberInput
                 source="tiempo_coccion_min"
                 label="Cocción (min)"
-                validate={validarPositivo}
+                validate={validarMinutos}
                 fullWidth
               />
               <NumberInput
                 source="tiempo_total_min"
                 label="Total (min)"
-                validate={validarPositivo}
+                validate={validarMinutos}
                 fullWidth
               />
             </Box>
@@ -104,9 +110,9 @@ export function RecetaEdit() {
           <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
             Arrastra las filas para cambiar el orden de presentación.
           </Typography>
-          <ArrayInput source="ingredientes" label={false} fullWidth>
+          <ArrayInput source="ingredientes" label={false} validate={validarLista('Añade al menos un ingrediente')} fullWidth>
             <SimpleFormIterator inline fullWidth>
-              <NumberInput source="cantidad" label="Cantidad" fullWidth sx={{ flex: '0 1 160px', minWidth: 120 }} />
+              <NumberInput source="cantidad" label="Cantidad" validate={validarCantidad} fullWidth sx={{ flex: '0 1 160px', minWidth: 120 }} />
               <TextInput source="unidad" label="Unidad" fullWidth sx={{ flex: '0 1 180px', minWidth: 130 }} />
               <TextInput
                 source="nombre"
@@ -124,7 +130,7 @@ export function RecetaEdit() {
           <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
             El número de cada paso se recalcula automáticamente según su posición.
           </Typography>
-          <ArrayInput source="pasos" label={false} fullWidth>
+          <ArrayInput source="pasos" label={false} validate={validarLista('Añade al menos un paso')} fullWidth>
             <SimpleFormIterator
               fullWidth
               getItemLabel={(index) => 'Paso ' + (index + 1)}
@@ -175,7 +181,7 @@ export function RecetaEdit() {
             <ImagenUpload />
             <TextInput source="imagen_url" label="URL de imagen" disabled fullWidth />
             <TextInput source="fuente_nombre" label="Nombre de la fuente" fullWidth />
-            <TextInput source="fuente_url" label="URL de la fuente" type="url" fullWidth />
+            <TextInput source="fuente_url" label="URL de la fuente" type="url" validate={validarUrlOpcional} fullWidth />
           </Box>
         </TabbedForm.Tab>
       </TabbedForm>

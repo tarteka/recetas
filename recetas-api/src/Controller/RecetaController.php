@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use App\Repository\RecetaRepository;
+use App\Service\RecetaValidator;
 use JsonException;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -12,7 +13,8 @@ use Psr\Http\Message\ServerRequestInterface;
 final class RecetaController
 {
     public function __construct(
-        private readonly RecetaRepository $repository
+        private readonly RecetaRepository $repository,
+        private readonly RecetaValidator $validator
     ) {
     }
 
@@ -170,17 +172,17 @@ final class RecetaController
             );
         }
 
-        if (
-            !is_array($datos)
-            || empty($datos['titulo'])
-            || empty($datos['ingredientes'])
-            || empty($datos['pasos'])
-        ) {
+        if (!is_array($datos)) {
             return $this->json(
                 $response,
-                ['error' => 'Datos de receta incompletos'],
+                ['error' => 'El cuerpo de la receta debe ser un objeto JSON'],
                 422
             );
+        }
+
+        $errores = $this->validator->validar($datos);
+        if ($errores !== []) {
+            return $this->json($response, ['error' => $errores[0], 'errores' => $errores], 422);
         }
 
         $id = $this->repository->crear($datos);
@@ -213,15 +215,13 @@ final class RecetaController
             return $this->json($response, ['error' => 'JSON no válido'], 400);
         }
 
-        if (
-            !is_array($datos)
-            || trim((string) ($datos['titulo'] ?? '')) === ''
-            || !is_array($datos['ingredientes'] ?? null)
-            || $datos['ingredientes'] === []
-            || !is_array($datos['pasos'] ?? null)
-            || $datos['pasos'] === []
-        ) {
-            return $this->json($response, ['error' => 'Datos de receta incompletos'], 422);
+        if (!is_array($datos)) {
+            return $this->json($response, ['error' => 'El cuerpo de la receta debe ser un objeto JSON'], 422);
+        }
+
+        $errores = $this->validator->validar($datos);
+        if ($errores !== []) {
+            return $this->json($response, ['error' => $errores[0], 'errores' => $errores], 422);
         }
 
         if (!$this->repository->actualizar($id, $datos)) {
