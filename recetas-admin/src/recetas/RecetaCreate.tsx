@@ -1,4 +1,4 @@
-import { Box, Button, Typography } from '@mui/material';
+import { Alert, Box, Button, Typography } from '@mui/material';
 import {
   ArrayInput,
   Create,
@@ -111,7 +111,7 @@ export function RecetaCreate() {
 
         <TabbedForm.Tab label="Ingredientes">
           <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            Arrastra las filas para cambiar el orden de presentación.
+            Usa las flechas de cada fila para cambiar el orden de presentación.
           </Typography>
           <ArrayInput source="ingredientes" label={false} validate={validarLista('Añade al menos un ingrediente')} fullWidth>
             <SimpleFormIterator inline fullWidth>
@@ -181,6 +181,9 @@ export function RecetaCreate() {
 
         <TabbedForm.Tab label="Fuente e imagen">
           <Box sx={{ width: '100%' }}>
+            <Alert severity="info" sx={{ mb: 3 }}>
+              Guarda la receta primero: la imagen se sube después, desde la pantalla de edición.
+            </Alert>
             <ImageField
               source="imagen_url"
               label="Imagen actual"

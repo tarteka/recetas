@@ -57,10 +57,6 @@ export default function PaginaAcercaDe() {
           <li><span>Entorno</span><strong>Docker</strong></li>
         </ul>
       </section>
-
-      <aside className="acerca-cierre">
-        <p>Un proyecto creado como parte de <a href="https://proyectozero.org" target="_blank" rel="noreferrer">Proyecto Zero ↗</a></p>
-      </aside>
     </div>
   </main>;
 }

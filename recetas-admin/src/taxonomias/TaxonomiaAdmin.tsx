@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from 'react';
 import {
   Box,
   Button,
@@ -22,7 +23,7 @@ import {
   Create,
   CreateButton,
   Datagrid,
-  DeleteButton,
+  DeleteWithConfirmButton,
   Edit,
   FunctionField,
   List,
@@ -34,6 +35,7 @@ import {
   TextInput,
   required,
   useListContext,
+  useRecordContext,
   useRedirect,
   useResourceContext,
 } from 'react-admin';
@@ -56,7 +58,27 @@ function PanelTaxonomia() {
   const recurso = useResourceContext() ?? 'categorias';
   const { filterValues, setFilters, sort, setSort } = useListContext();
   const { plural, singular } = configuracion(recurso);
-  const buscar = String(filterValues.buscar ?? '');
+  const filtroBuscar = String(filterValues.buscar ?? '');
+  const [buscar, setBuscar] = useState(filtroBuscar);
+  const [ultimoFiltroBuscar, setUltimoFiltroBuscar] = useState(filtroBuscar);
+  const primerRenderRef = useRef(true);
+
+  if (filtroBuscar !== ultimoFiltroBuscar) {
+    setUltimoFiltroBuscar(filtroBuscar);
+    setBuscar(filtroBuscar);
+  }
+
+  useEffect(() => {
+    if (primerRenderRef.current) {
+      primerRenderRef.current = false;
+      return;
+    }
+    const temporizador = setTimeout(() => {
+      setFilters(buscar ? { buscar } : {}, []);
+    }, 400);
+    return () => clearTimeout(temporizador);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [buscar]);
 
   return (
     <Box className="lista-recetas__panel taxonomias__panel">
@@ -73,7 +95,7 @@ function PanelTaxonomia() {
           label={`Buscar ${plural.toLowerCase()}`}
           placeholder="Escribe un nombre o slug"
           value={buscar}
-          onChange={(event) => setFilters(event.target.value ? { buscar: event.target.value } : {}, [])}
+          onChange={(event) => setBuscar(event.target.value)}
           slotProps={{ input: { startAdornment: <InputAdornment position="start"><SearchOutlinedIcon aria-hidden="true" /></InputAdornment> } }}
           size="small"
         />
@@ -108,7 +130,16 @@ function AccionesTaxonomia({ item, movil = false }: { item: Taxonomia; movil?: b
     <Box className={movil ? 'taxonomias-movil__acciones' : 'lista-recetas__acciones-fila'} onClick={(event) => event.stopPropagation()}>
       {movil && <Tooltip title="Editar" arrow><IconButton color="primary" aria-label={`Editar ${item.nombre}`} onClick={() => redirect('edit', recurso, item.id)}><EditOutlinedIcon /></IconButton></Tooltip>}
       <Tooltip title="Eliminar" arrow>
-        <DeleteButton className="taxonomias__eliminar-icono" record={item} mutationMode="pessimistic" redirect={false} label="" icon={<DeleteForeverOutlinedIcon />} />
+        <DeleteWithConfirmButton
+          className="taxonomias__eliminar-icono"
+          record={item}
+          mutationMode="pessimistic"
+          redirect={false}
+          label=""
+          icon={<DeleteForeverOutlinedIcon />}
+          confirmTitle={`Eliminar "${item.nombre}"`}
+          confirmContent="Esta acción no se puede deshacer."
+        />
       </Tooltip>
     </Box>
   );
@@ -174,11 +205,20 @@ function validarSlug(valor: string | undefined) {
 
 function BarraFormulario({ creando }: { creando: boolean }) {
   const recurso = useResourceContext() ?? 'categorias';
+  const registro = useRecordContext<Taxonomia>();
   const redirect = useRedirect();
   const { singular } = configuracion(recurso);
   return (
     <Box className="editor-receta__toolbar taxonomias__toolbar" role="toolbar">
-      {!creando && <DeleteButton className="taxonomias__eliminar" mutationMode="pessimistic" redirect="list" />}
+      {!creando && (
+        <DeleteWithConfirmButton
+          className="taxonomias__eliminar"
+          mutationMode="pessimistic"
+          redirect="list"
+          confirmTitle={registro ? `Eliminar "${registro.nombre}"` : undefined}
+          confirmContent="Esta acción no se puede deshacer."
+        />
+      )}
       <SaveButton label={creando ? `Crear ${singular}` : 'Guardar cambios'} />
       <Button type="button" variant="outlined" onClick={() => redirect('list', recurso)}>Cancelar</Button>
     </Box>
