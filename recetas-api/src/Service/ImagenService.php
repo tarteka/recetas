@@ -18,6 +18,11 @@ final class ImagenService
 
     private const BYTES_MAXIMOS = 10 * 1024 * 1024;
 
+    public function __construct(
+        private readonly string $directorio = self::DIRECTORIO
+    ) {
+    }
+
     /**
      * Valida, recorta y almacena una imagen recibida como WebP 1200x800.
      */
@@ -56,7 +61,7 @@ final class ImagenService
             return;
         }
 
-        $ruta = self::DIRECTORIO . '/' . $coincidencias[1];
+        $ruta = $this->directorio . '/' . $coincidencias[1];
         if (is_file($ruta) && !unlink($ruta)) {
             throw new RuntimeException('No se pudo eliminar la imagen anterior');
         }
@@ -146,9 +151,9 @@ final class ImagenService
     private function guardarWebp(GdImage $imagen): string
     {
         if (
-            !is_dir(self::DIRECTORIO)
-            && !mkdir(self::DIRECTORIO, 0755, true)
-            && !is_dir(self::DIRECTORIO)
+            !is_dir($this->directorio)
+            && !mkdir($this->directorio, 0755, true)
+            && !is_dir($this->directorio)
         ) {
             throw new RuntimeException(
                 'No se pudo crear el directorio de imágenes'
@@ -156,7 +161,7 @@ final class ImagenService
         }
 
         $nombre = bin2hex(random_bytes(16)) . '.webp';
-        $ruta = self::DIRECTORIO . '/' . $nombre;
+        $ruta = $this->directorio . '/' . $nombre;
 
         if (!imagewebp($imagen, $ruta, self::CALIDAD_WEBP)) {
             throw new RuntimeException(
