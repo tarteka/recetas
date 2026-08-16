@@ -53,22 +53,18 @@ jobs:
               exit 1
             }
 
-            # 2. Detener servicios actuales
-            echo "🛑 Deteniendo servicios actuales..."
-            docker compose -f compose.prod.yaml down
-
-            # 3. Levantar servicios antiguos
-            echo "🆙 Levantando servicios antiguos..."
+            # 2. Recrear solo los contenedores cuya imagen cambió (sin downtime completo)
+            echo "🆙 Actualizando servicios..."
             docker compose -f compose.prod.yaml up -d || {
               echo "❌ Error al iniciar servicios"
               exit 1
             }
 
-            # 4. Esperar inicialización
+            # 3. Esperar inicialización
             echo "⏳ Esperando servicios..."
             sleep 15
 
-            # 5. Health check
+            # 4. Health check
             echo "🏥 Verificando salud..."
             if curl -f http://127.0.0.1:8080/salud > /dev/null 2>&1; then
               echo "✅ API respondiendo correctamente"

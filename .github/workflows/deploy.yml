@@ -28,12 +28,12 @@ jobs:
             cd /opt/recetas
 
             echo "🚀 Iniciando despliegue..."
-            echo "Commit SHA: ${{ github.sha }}"
+            echo "Commit SHA: ${{ github.event.workflow_run.head_sha }}"
             echo ""
 
             # 1. Descargar imágenes
             echo "📥 Descargando imágenes de GHCR..."
-            export RELEASE_TAG=${{ github.sha }}
+            export RELEASE_TAG=${{ github.event.workflow_run.head_sha }}
             docker compose -f compose.prod.yaml pull || {
               echo "❌ Error al descargar imágenes"
               exit 1
