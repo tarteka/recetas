@@ -4,6 +4,7 @@ import {
   Box,
   Button,
   Chip,
+  Collapse,
   Dialog,
   DialogActions,
   DialogContent,
@@ -23,6 +24,8 @@ import {
 import ArchiveOutlinedIcon from '@mui/icons-material/ArchiveOutlined';
 import DeleteForeverOutlinedIcon from '@mui/icons-material/DeleteForeverOutlined';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
+import ExpandMoreOutlinedIcon from '@mui/icons-material/ExpandMoreOutlined';
+import FilterListOutlinedIcon from '@mui/icons-material/FilterListOutlined';
 import RestartAltOutlinedIcon from '@mui/icons-material/RestartAltOutlined';
 import RestoreOutlinedIcon from '@mui/icons-material/RestoreOutlined';
 import SearchOutlinedIcon from '@mui/icons-material/SearchOutlined';
@@ -48,6 +51,8 @@ interface Opcion { id: string; nombre: string }
 
 function PanelListado() {
   const { filterValues, setFilters, sort, setSort } = useListContext();
+  const esMovil = useMediaQuery((theme: Theme) => theme.breakpoints.down('sm'));
+  const [filtrosAbiertos, setFiltrosAbiertos] = useState(false);
   const [categorias, setCategorias] = useState<Opcion[]>([]);
   const [etiquetas, setEtiquetas] = useState<Opcion[]>([]);
 
@@ -85,7 +90,20 @@ function PanelListado() {
         <CreateButton label="Nueva receta" />
       </Box>
 
-      <Box className="lista-recetas__filtros" component="section" aria-label="Búsqueda y filtros">
+      {esMovil && (
+        <Button
+          className="lista-recetas__alternar-filtros"
+          startIcon={<FilterListOutlinedIcon />}
+          endIcon={<ExpandMoreOutlinedIcon className={filtrosAbiertos ? 'esta-abierto' : ''} />}
+          onClick={() => setFiltrosAbiertos((abiertos) => !abiertos)}
+          aria-expanded={filtrosAbiertos}
+          aria-controls="filtros-recetas"
+        >
+          {filtrosActivos ? 'Buscar y filtrar · filtros activos' : 'Buscar y filtrar'}
+        </Button>
+      )}
+      <Collapse in={!esMovil || filtrosAbiertos} timeout={esMovil ? 'auto' : 0}>
+      <Box className="lista-recetas__filtros" component="section" id="filtros-recetas" aria-label="Búsqueda y filtros">
         <CampoTexto
           className="lista-recetas__buscar"
           label="Buscar recetas"
@@ -142,6 +160,7 @@ function PanelListado() {
           </Button>
         )}
       </Box>
+      </Collapse>
     </Box>
   );
 }

@@ -187,6 +187,26 @@ body {
   white-space: nowrap;
 }
 
+.lista-recetas__alternar-filtros {
+  justify-content: flex-start;
+  min-height: 44px;
+  color: #356044;
+  border: 1px solid #d7ddd5;
+  background: #f7f9f5;
+}
+
+.lista-recetas__alternar-filtros .MuiButton-endIcon {
+  margin-left: auto;
+}
+
+.lista-recetas__alternar-filtros .MuiButton-endIcon .MuiSvgIcon-root {
+  transition: transform 180ms ease;
+}
+
+.lista-recetas__alternar-filtros .MuiButton-endIcon .esta-abierto {
+  transform: rotate(180deg);
+}
+
 .lista-recetas__vacia {
   display: grid;
   justify-items: center;
@@ -351,6 +371,8 @@ body {
 
   .lista-recetas__filtros {
     grid-template-columns: 1fr;
+    margin-top: 12px;
+    padding-top: 14px;
   }
 
   .lista-recetas__limpiar {
