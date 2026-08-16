@@ -1,15 +1,16 @@
 name: Deploy - Producción
 
 on:
-  push:
-    branches: [ main ]
+  workflow_run:
+    workflows: ["Build & Publish - GHCR"]
+    types: [completed]
+    branches: [main]
 
 jobs:
   deploy:
     name: Desplegar a VPS
     runs-on: ubuntu-latest
-    # Solo desplegar si los builds fueron exitosos
-    # (este job se ejecuta después de build-publish automáticamente)
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
 
     steps:
       - uses: actions/checkout@v4
