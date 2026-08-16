@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Validar composer.json
         run: |
@@ -28,9 +28,9 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: npm
@@ -50,9 +50,9 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: npm
@@ -72,26 +72,26 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: docker/setup-buildx-action@v3
+      - uses: docker/setup-buildx-action@v4
 
       - name: Build recetas-api
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v7
         with:
           context: ./recetas-api
           file: ./recetas-api/Dockerfile.prod
           push: false
 
       - name: Build recetas-web
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v7
         with:
           context: ./recetas-web
           file: ./recetas-web/Dockerfile.prod
           push: false
 
       - name: Build recetas-admin
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v7
         with:
           context: ./recetas-admin
           file: ./recetas-admin/Dockerfile.prod
