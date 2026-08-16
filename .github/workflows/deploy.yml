@@ -52,6 +52,7 @@ jobs:
             docker compose -f compose.prod.yaml up -d || {
               echo "❌ Error al iniciar servicios"
               exit 1
+            }
             
 
             # 4. Esperar a que estén listos
