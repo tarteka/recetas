@@ -1,525 +1,116 @@
-# Recetario
+# Recetas
 
-Aplicación web personal para almacenar y consultar recetas de cocina.
+> Aplicación de gestión de recetas con Docker, CI/CD automático y **integración con OpenClaw + Telegram**.
 
-El proyecto permite guardar recetas manualmente mediante su API o automatizar la importación desde una URL utilizando OpenClaw. Las recetas se almacenan de forma estructurada junto con sus ingredientes, pasos, categorías, etiquetas e imágenes.
+![CI](https://github.com/tarteka/recetas/actions/workflows/ci.yml/badge.svg)
+![Build & Publish](https://github.com/tarteka/recetas/actions/workflows/build-publish.yml/badge.svg)
+![Deploy](https://github.com/tarteka/recetas/actions/workflows/deploy.yml/badge.svg)
 
-## Tecnologías
+🍳 **En vivo:** https://recetas.proyectozero.org
 
-### Backend
+## Lo Especial
 
-- PHP 8.4
-- Slim Framework
-- SQLite
-- GD
-- Composer
+✨ **Agrega recetas desde Telegram** — Envía una URL a OpenClaw y automáticamente:
+- Extrae los datos de la receta
+- Procesa la imagen (normaliza a WebP 1200×800)
+- Genera imagen con IA si falta
+- Guarda en la base de datos
 
-### Frontend
+Perfecto para coleccionar recetas sin salir de Telegram.
 
-- React
-- TypeScript
-- Vite
+## Tech Stack
 
-### Infraestructura
+- **Backend:** PHP 8.4 + Slim Framework + SQLite
+- **Frontend:** React 18 + TypeScript + Vite
+- **Web:** Caddy 2 (HTTPS automático)
+- **CI/CD:** GitHub Actions → GHCR → VPS (SSH)
+- **Contenedores:** Docker Compose (desarrollo y producción)
 
-- Docker
-- Docker Compose
-
-### Automatización
-
-- OpenClaw
-- OpenAI Image Generation
-
-## Características
-
-- Listado de recetas.
-- Vista detallada de cada receta.
-- Ingredientes estructurados.
-- Pasos de elaboración ordenados.
-- Categorías y etiquetas.
-- Tiempos de preparación y cocción.
-- API REST.
-- Autenticación mediante Bearer Token para operaciones de escritura.
-- Importación automática de recetas desde una URL mediante OpenClaw.
-- Extracción y normalización automática de recetas.
-- Descarga y validación de la imagen original.
-- Generación automática de una imagen cuando la original no existe o no es adecuada.
-- Normalización de imágenes a WebP 1200 × 800.
-- Almacenamiento local y persistente de imágenes.
-
-## Instalación
-
-Clona el repositorio:
+## Inicio Rápido
 
 ```bash
-git clone <URL_DEL_REPOSITORIO>
-cd recetas
-```
-
-Crea el archivo de configuración:
-
-```bash
+# Desarrollo local
+git clone https://github.com/tarteka/recetas.git && cd recetas
 cp .env.example .env
+docker compose up -d
+
+# Web en http://localhost:5174
+# Admin en http://localhost:5175
+# API en http://localhost:8080
 ```
 
-Configura las variables necesarias en `.env`.
+Ver **[DEVELOPMENT.md](docs/DEVELOPMENT.md)** para detalles.
 
-Por ejemplo:
+## Documentación
 
-```dotenv
-RECETAS_API_TOKEN=change-me
-```
-
-Genera un token seguro:
-
-```bash
-openssl rand -hex 32
-```
-
-Construye e inicia los contenedores:
-
-```bash
-docker compose up -d --build
-```
-
-La aplicación utiliza volúmenes persistentes para almacenar la base de datos y las imágenes.
-
-## API
-
-### Estado
-
-```http
-GET /salud
-```
-
-### Listar recetas
-
-```http
-GET /recetas?pagina=1&por_pagina=9&buscar=arroz&categoria=postres&etiqueta=sin-horno
-```
-
-La respuesta contiene `datos` con las recetas de la página y un objeto `paginacion` con `pagina`, `por_pagina`, `total` y `total_paginas`. Todos los parámetros salvo la página y el tamaño son opcionales.
-
-### Listar categorías
-
-```http
-GET /categorias
-```
-
-Devuelve las categorías con su número total de recetas.
-
-### Listar etiquetas
-
-```http
-GET /etiquetas
-```
-
-Devuelve las etiquetas con su número total de recetas.
-
-### Obtener una receta
-
-```http
-GET /recetas/{id}
-```
-
-### Crear una receta
-
-```http
-POST /recetas
-Authorization: Bearer <token>
-Content-Type: application/json
-```
-
-### Asignar una imagen
-
-```http
-POST /recetas/{id}/imagen
-Authorization: Bearer <token>
-Content-Type: application/octet-stream
-```
-
-El cuerpo de la petición contiene directamente los bytes de la imagen.
-
-La API valida la imagen y la normaliza automáticamente a:
-
-- WebP
-- 1200 × 800 píxeles
-- relación 3:2
-- recorte tipo `cover`
-
-La imagen resultante se almacena en el almacenamiento persistente del servidor y la receta guarda únicamente su ruta local.
-
-## Integración con OpenClaw
-
-El repositorio incluye el skill:
-
-```text
-openclaw/recetario/
-```
-
-OpenClaw debe estar previamente instalado y configurado. La instalación de OpenClaw y la configuración de canales como Telegram quedan fuera del alcance de este proyecto.
-
-### Instalar el skill
-
-Copia el skill al directorio de skills de OpenClaw:
-
-```bash
-mkdir -p ~/.openclaw/skills/recetario
-
-cp -R openclaw/recetario/. \
-  ~/.openclaw/skills/recetario/
-```
-
-Asegura los permisos de los scripts:
-
-```bash
-chmod 700 ~/.openclaw/skills/recetario/scripts/*.sh
-```
-
-Comprueba que OpenClaw lo reconoce:
-
-```bash
-openclaw skills check
-```
-
-`recetario` debe aparecer como disponible y visible para el modelo.
-
-### Token de la API
-
-OpenClaw necesita disponer de:
-
-```text
-RECETAS_API_TOKEN
-```
-
-El valor debe coincidir con el configurado para la API.
-
-No guardes el token directamente en `SKILL.md` ni en los scripts versionados.
-
-## Importación automática
-
-Una vez instalado el skill, se puede solicitar a OpenClaw que guarde una receta indicando simplemente su URL.
-
-Por ejemplo:
-
-```text
-Guarda esta receta:
-https://ejemplo.com/receta
-```
-
-OpenClaw:
-
-1. obtiene la página;
-2. identifica la receta;
-3. extrae y normaliza sus datos;
-4. guarda la receta mediante la API;
-5. obtiene su identificador;
-6. localiza y analiza la imagen original;
-7. utiliza la imagen original si es adecuada;
-8. genera una imagen específica si la original no existe o no representa correctamente la receta;
-9. envía la imagen a la API;
-10. confirma el resultado al usuario.
-
-## Gestión de imágenes
-
-Las imágenes no se almacenan utilizando las URLs de terceros.
-
-El proceso es:
-
-```text
-Imagen original
-      │
-      ├── válida ───────────────┐
-      │                         │
-      └── no válida             │
-             │                  │
-             ▼                  │
-      generación mediante IA    │
-             │                  │
-             └─────────┬────────┘
-                       ▼
-                    API
-                       ▼
-             normalización WebP
-                       ▼
-                  1200 × 800
-                       ▼
-              almacenamiento local
-```
-
-Esto evita depender permanentemente de servidores externos y mantiene un formato uniforme para todas las imágenes del recetario.
-
-La generación mediante IA solo se utiliza como alternativa cuando no existe una imagen original adecuada.
-
-## Arquitectura de la API
-
-La API utiliza una arquitectura por capas adaptada a una API JSON:
-
-- `public/index.php` es únicamente el punto de entrada HTTP.
-- `bootstrap/app.php` crea Slim y compone repositorios, servicios, controladores y middleware.
-- `routes/api.php` declara las rutas y las conecta con sus controladores.
-- `src/Controller/` gestiona las peticiones y respuestas HTTP.
-- `src/Service/` contiene operaciones de aplicación como el procesamiento de imágenes.
-- `src/Repository/` concentra el acceso a SQLite.
-
-La API no necesita una capa de vistas HTML; sus representaciones se entregan como JSON desde los controladores.
-
-## Persistencia
-
-Los datos de ejecución se almacenan fuera de las imágenes Docker.
-
-Entre ellos:
-
-```text
-datos/recetas.sqlite
-datos/imagenes/
-```
-
-Estos archivos no deben incluirse en Git.
+- **[DEVELOPMENT.md](docs/DEVELOPMENT.md)** — Setup local con Docker y Google OIDC
+- **[DEPLOYMENT.md](docs/DEPLOYMENT.md)** — Producción, backup y health checks
+- **[ROLLBACK.md](docs/ROLLBACK.md)** — Rollback automático y manual
 
 ## Seguridad
 
-Las operaciones de escritura de la API están protegidas mediante Bearer Token.
-
-No deben versionarse:
-
-- `.env`
-- tokens de API
-- base de datos SQLite
-- imágenes almacenadas
-- dependencias instaladas
-- archivos temporales
-
-Antes de realizar un commit se recomienda comprobar:
+### Buenas Prácticas
 
 ```bash
+# Verificar antes de commitear
 git status --short
-```
 
-y:
+# Confirmar que .gitignore protege secretos
+git check-ignore -v .env datos/
 
-```bash
-git check-ignore -v \
-  .env \
-  datos/recetas.sqlite \
-  datos/imagenes/
-```
-
-## Publicación en producción
-
-La configuración de producción utiliza Caddy como servidor público y proxy HTTPS, Apache con PHP para la API y una compilación estática de React. El dominio configurado por defecto es `recetas.proyectozero.org`.
-
-### Arquitectura del despliegue
-
-```text
-Internet
-   │
-   ▼
-Caddy :80/:443 ──► React estático
-   │
-   ├── /api/* ───► Slim + Apache
-   └── /imagenes/* ─► Slim + Apache
-                         │
-                         ▼
-                 SQLite e imágenes
-                    en ./datos
-```
-
-- `recetas-web` es el único servicio expuesto públicamente.
-- Caddy solicita y renueva automáticamente el certificado HTTPS.
-- `recetas-api` se comunica con Caddy mediante la red interna de Docker.
-- La API también escucha en `127.0.0.1:8080` para los scripts locales de OpenClaw.
-- La base de datos y las imágenes persisten en el directorio `datos/` del servidor.
-
-### Requisitos previos
-
-- El registro DNS de `recetas.proyectozero.org` debe apuntar a la IP pública del VPS.
-- Los puertos TCP 80 y 443 deben estar abiertos en Oracle Cloud y en el firewall del sistema.
-- Docker y Docker Compose deben estar instalados.
-- Ningún otro servicio debe estar utilizando los puertos públicos 80 y 443.
-
-### Configurar el entorno
-
-Copia el archivo de ejemplo y establece un token de escritura seguro:
-
-```bash
-cp .env.example .env
+# Generar tokens seguros
 openssl rand -hex 32
 ```
 
-Completa `.env` sin espacios ni comillas innecesarias:
+### Secretos en Producción
+
+Configurar via `.env` en VPS únicamente:
 
 ```dotenv
-RECETAS_DOMINIO=recetas.proyectozero.org
-RECETAS_API_TOKEN=token_generado
+RECETAS_API_TOKEN=<token-fuerte-aleatorio>
+GOOGLE_CLIENT_ID=<oauth-client-id>
+GOOGLE_CLIENT_SECRET=<oauth-secret>
+ADMIN_SESSION_SECRET=<session-key>
 ```
 
-Protege el archivo de secretos:
+Nunca agregar a Git, ni siquiera en `.env.example`.
+
+## Contribución
+
+1. **Fork** el repositorio
+2. **Crear rama** (`git checkout -b feature/mi-feature`)
+3. **Hacer cambios** y probar localmente (`docker compose up -d`)
+4. **Commit claro** (`git commit -m "feat: agregar X"`)
+5. **Push** y **crear Pull Request**
+
+Todos los PRs ejecutan:
+- Validación de sintaxis PHP
+- Lint y build de React/TypeScript
+- Validación de construcción Docker
+
+Si todos los checks pasan, mergear a `main` dispara despliegue automático.
+
+## Backup y Recuperación
 
 ```bash
-chmod 600 .env
-```
-
-### Desplegar
-
-Detén primero el entorno de desarrollo si está activo, porque utiliza el mismo puerto local de la API:
-
-```bash
-sudo docker compose down
-sudo docker compose -f compose.prod.yaml up -d --build
-```
-
-Caddy publica los puertos 80 y 443 y gestiona automáticamente el certificado TLS. La API permanece disponible en `127.0.0.1:8080` para los scripts locales de OpenClaw, pero no se expone directamente a Internet.
-
-Comprueba el estado y los logs:
-
-```bash
-sudo docker compose -f compose.prod.yaml ps
-sudo docker compose -f compose.prod.yaml logs --tail=100
-curl --fail https://recetas.proyectozero.org/api/salud
-```
-
-La comprobación de salud debe devolver:
-
-```json
-{"estado":"ok"}
-```
-
-Las rutas directas de React, como `/acerca-de` y `/recetas/1`, utilizan fallback a `index.html` y pueden recargarse normalmente.
-
-### Actualizar
-
-```bash
-git pull
-sudo docker compose -f compose.prod.yaml up -d --build
-curl --fail https://recetas.proyectozero.org/api/salud
-sudo docker image prune -f
-```
-
-El volumen de Caddy conserva el certificado TLS y `datos/` conserva las recetas al reconstruir los contenedores.
-
-### Copias de seguridad
-
-Se deben copiar conjuntamente `datos/recetas.sqlite` y `datos/imagenes/`. Antes de realizar una copia simple del archivo SQLite, detén brevemente la API para evitar escrituras concurrentes:
-
-```bash
+# Backup (en VPS)
 mkdir -p backups
 sudo docker compose -f compose.prod.yaml stop recetas-api
-sudo tar -czf "backups/recetas-backup-$(date +%F-%H%M).tar.gz" datos/
+sudo tar -czf "backups/recetas-$(date +%F-%H%M).tar.gz" datos/
 sudo docker compose -f compose.prod.yaml start recetas-api
-```
 
-Guarda periódicamente una copia fuera del VPS y verifica que pueda restaurarse.
-
-### Restaurar una copia
-
-La restauración reemplaza los datos actuales. Detén la API, conserva primero una copia del estado existente y extrae el archivo desde la raíz del proyecto:
-
-```bash
+# Restaurar
 sudo docker compose -f compose.prod.yaml stop recetas-api
-sudo mv datos "datos-antes-restauracion-$(date +%F-%H%M)"
-sudo tar -xzf backups/recetas-backup-AAAA-MM-DD-HHMM.tar.gz
+sudo tar -xzf backups/recetas-YYYY-MM-DD-HHMM.tar.gz
 sudo docker compose -f compose.prod.yaml start recetas-api
-curl --fail https://recetas.proyectozero.org/api/salud
 ```
 
-### Operación habitual
+Guardar backups fuera del VPS y verificar restauración regularmente.
 
-```bash
-# Seguir todos los logs
-sudo docker compose -f compose.prod.yaml logs -f
+## Licencia
 
-# Ver solo los logs del servidor web
-sudo docker compose -f compose.prod.yaml logs -f recetas-web
+Apache License 2.0 — Ver [LICENSE](LICENSE)
 
-# Ver solo los logs de la API
-sudo docker compose -f compose.prod.yaml logs -f recetas-api
+---
 
-# Reiniciar los servicios
-sudo docker compose -f compose.prod.yaml restart
-
-# Detener la aplicación sin eliminar los datos
-sudo docker compose -f compose.prod.yaml down
-```
-
-No utilices `docker compose down -v` en producción: eliminaría los volúmenes gestionados por Docker que conservan los certificados y la configuración interna de Caddy. El directorio enlazado `datos/` no se elimina con ese comando, pero debe mantenerse siempre respaldado.
-
-## Desarrollo
-
-Para consultar los logs:
-
-```bash
-docker compose logs -f
-```
-
-Para reconstruir los servicios:
-
-```bash
-docker compose up -d --build
-```
-
-Para detenerlos:
-
-```bash
-docker compose down
-```
-
-## Acceso administrativo con Google
-
-El panel independiente se publica bajo `/admin/` y usa Google OpenID Connect
-mediante Authorization Code Flow. La API intercambia el código y valida el ID
-token; el navegador solo recibe una cookie de sesión propia y opaca. El Bearer
-Token de OpenClaw no cambia ni sirve para iniciar sesión en el panel.
-
-La única cuenta autorizada inicialmente es `semosa@gmail.com`. La allowlist se
-comprueba en cada petición, por lo que retirar el email invalida sus sesiones.
-
-### Configurar Google Cloud
-
-Crea credenciales OAuth 2.0 de tipo **Aplicación web** y registra exactamente:
-
-- Origen autorizado: `https://recetas.proyectozero.org`
-- Callback: `https://recetas.proyectozero.org/api/admin/auth/google/callback`
-
-Para desarrollo local registra también el origen `http://localhost:5174` y el
-callback `http://localhost:5174/api/admin/auth/google/callback`. Google no
-admite comodines en la URI de redirección.
-
-Completa el `.env` del servidor sin publicar los valores:
-
-```dotenv
-GOOGLE_CLIENT_ID=
-GOOGLE_CLIENT_SECRET=
-ADMIN_ALLOWED_EMAILS=semosa@gmail.com
-ADMIN_SESSION_SECRET=
-ADMIN_GOOGLE_REDIRECT_URI=https://recetas.proyectozero.org/api/admin/auth/google/callback
-ADMIN_ALLOWED_ORIGINS=https://recetas.proyectozero.org
-```
-
-Genera `ADMIN_SESSION_SECRET` con al menos 32 bytes aleatorios, por ejemplo
-`openssl rand -hex 32`. No reutilices `RECETAS_API_TOKEN`.
-
-### Endpoints y sesión
-
-- `GET /api/admin/auth/google`: inicia el login con un `state` de un solo uso.
-- `GET /api/admin/auth/google/callback`: valida el callback y crea la sesión.
-- `GET /api/admin/me`: devuelve la identidad mínima autenticada.
-- `POST /api/admin/logout`: revoca la sesión y elimina la cookie.
-
-Las sesiones se guardan en SQLite con el identificador hasheado. La cookie
-`recetas_admin_session` es `HttpOnly`, `SameSite=Lax`, `Secure` en
-producción, usa la ruta `/` y caduca a las 12 horas. Las peticiones mutables
-también validan `Origin` contra `ADMIN_ALLOWED_ORIGINS`.
-
-No reconstruyas producción hasta configurar las credenciales reales. Después:
-
-```bash
-sudo docker compose -f compose.prod.yaml config -q
-sudo docker compose -f compose.prod.yaml build
-sudo docker compose -f compose.prod.yaml up -d
-```
-
-Comprueba `https://recetas.proyectozero.org/admin/` en una ventana privada.
-Una cuenta distinta de `semosa@gmail.com` debe ser rechazada sin crear sesión.
-
-Los datos persistentes no se eliminan al recrear los contenedores.
+**Estado:** Production-ready con CI/CD automatizado
