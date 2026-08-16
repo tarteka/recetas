@@ -174,9 +174,9 @@ RECETAS_DOMINIO=recetas.proyectozero.org
 Las imágenes se publican automáticamente en GHCR después de cada merge a `main`:
 
 ```
-ghcr.io/tarteka/recetas-api:<commit_sha>
-ghcr.io/tarteka/recetas-web:<commit_sha>
-ghcr.io/tarteka/recetas-admin:<commit_sha>
+ghcr.io/tarteka/recetas/recetas-api:<commit_sha>
+ghcr.io/tarteka/recetas/recetas-web:<commit_sha>
+ghcr.io/tarteka/recetas/recetas-admin:<commit_sha>
 ```
 
 También se publica un tag `latest` que apunta a la versión más reciente de `main`.

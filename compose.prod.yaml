@@ -2,7 +2,7 @@ name: recetas-produccion
 
 services:
   recetas-api:
-    image: ghcr.io/tarteka/recetas-api:${RELEASE_TAG:-latest}
+    image: ghcr.io/tarteka/recetas/recetas-api:${RELEASE_TAG:-latest}
     pull_policy: always
     environment:
       RECETAS_API_TOKEN: ${RECETAS_API_TOKEN:?Configura RECETAS_API_TOKEN en .env}
@@ -27,7 +27,7 @@ services:
       start_period: 15s
 
   recetas-web:
-    image: ghcr.io/tarteka/recetas-web:${RELEASE_TAG:-latest}
+    image: ghcr.io/tarteka/recetas/recetas-web:${RELEASE_TAG:-latest}
     pull_policy: always
     environment:
       RECETAS_DOMINIO: ${RECETAS_DOMINIO:-recetas.proyectozero.org}
@@ -48,7 +48,7 @@ services:
     restart: unless-stopped
 
   recetas-admin:
-    image: ghcr.io/tarteka/recetas-admin:${RELEASE_TAG:-latest}
+    image: ghcr.io/tarteka/recetas/recetas-admin:${RELEASE_TAG:-latest}
     pull_policy: always
     networks:
       - recetas-interna

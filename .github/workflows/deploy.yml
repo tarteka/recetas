@@ -31,7 +31,15 @@ jobs:
             echo "Commit SHA: ${{ github.event.workflow_run.head_sha }}"
             echo ""
 
-            # 1. Descargar imágenes
+            # 1. Sincronizar compose.prod.yaml y demás config con el commit publicado
+            echo "🔄 Sincronizando configuración..."
+            git fetch --quiet origin
+            git checkout --quiet ${{ github.event.workflow_run.head_sha }} || {
+              echo "❌ Error al sincronizar el checkout"
+              exit 1
+            }
+
+            # 2. Descargar imágenes
             echo "📥 Descargando imágenes de GHCR..."
             export RELEASE_TAG=${{ github.event.workflow_run.head_sha }}
             docker compose -f compose.prod.yaml pull || {
@@ -39,18 +47,18 @@ jobs:
               exit 1
             }
 
-            # 2. Levantar servicios
+            # 3. Levantar servicios
             echo "🆙 Levantando servicios..."
             docker compose -f compose.prod.yaml up -d || {
               echo "❌ Error al iniciar servicios"
               exit 1
-            }
+            
 
-            # 3. Esperar a que estén listos
+            # 4. Esperar a que estén listos
             echo "⏳ Esperando servicios..."
             sleep 15
 
-            # 4. Health check - API
+            # 5. Health check - API
             echo "🏥 Verificando salud de API..."
             if curl -f http://127.0.0.1:8080/salud > /dev/null 2>&1; then
               echo "✅ API respondiendo correctamente"
@@ -60,7 +68,7 @@ jobs:
               exit 1
             fi
 
-            # 5. Verificar datos persistentes
+            # 6. Verificar datos persistentes
             echo "💾 Verificando datos persistentes..."
             if [ -f "datos/recetas.sqlite" ]; then
               echo "✅ Base de datos intacta"
