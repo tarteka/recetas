@@ -11,15 +11,18 @@ import {
   FormControl,
   InputAdornment,
   InputLabel,
+  IconButton,
   MenuItem,
   Select,
   TextField as CampoTexto,
+  Tooltip,
   Typography,
   useMediaQuery,
 } from '@mui/material';
 import ArchiveOutlinedIcon from '@mui/icons-material/ArchiveOutlined';
 import DeleteForeverOutlinedIcon from '@mui/icons-material/DeleteForeverOutlined';
 import RestartAltOutlinedIcon from '@mui/icons-material/RestartAltOutlined';
+import RestoreOutlinedIcon from '@mui/icons-material/RestoreOutlined';
 import SearchOutlinedIcon from '@mui/icons-material/SearchOutlined';
 import type { Theme } from '@mui/material/styles';
 import {
@@ -142,23 +145,31 @@ function PanelListado() {
 }
 
 function AccionRapida({ receta, compacto = false }: { receta: RecetaResumenAdmin; compacto?: boolean }) {
-  const [abierto, setAbierto] = useState(false);
+  const [accion, setAccion] = useState<'archivar' | 'restaurar' | 'eliminar' | null>(null);
   const [procesando, setProcesando] = useState(false);
   const notify = useNotify();
   const refresh = useRefresh();
-  const eliminacion = Boolean(receta.archivada_en);
+  const archivada = Boolean(receta.archivada_en);
 
   const confirmar = async () => {
+    if (!accion) return;
     setProcesando(true);
     try {
       const response = await fetch(
-        eliminacion ? `/api/admin/recetas/${receta.id}/definitiva` : `/api/admin/recetas/${receta.id}`,
-        { method: 'DELETE', credentials: 'include', headers: { Accept: 'application/json' } },
+        accion === 'eliminar'
+          ? `/api/admin/recetas/${receta.id}/definitiva`
+          : accion === 'restaurar'
+            ? `/api/admin/recetas/${receta.id}/restaurar`
+            : `/api/admin/recetas/${receta.id}`,
+        { method: accion === 'restaurar' ? 'POST' : 'DELETE', credentials: 'include', headers: { Accept: 'application/json' } },
       );
       const body = await response.json().catch(() => null) as { error?: unknown } | null;
       if (!response.ok) throw new Error(typeof body?.error === 'string' ? body.error : 'No se pudo completar la acción');
-      notify(eliminacion ? 'Receta eliminada definitivamente' : 'Receta archivada', { type: 'success' });
-      setAbierto(false);
+      notify(
+        accion === 'eliminar' ? 'Receta eliminada definitivamente' : accion === 'restaurar' ? 'Receta restaurada' : 'Receta archivada',
+        { type: 'success' },
+      );
+      setAccion(null);
       refresh();
     } catch (error) {
       notify(error instanceof Error ? error.message : 'No se pudo completar la acción', { type: 'error' });
@@ -168,26 +179,40 @@ function AccionRapida({ receta, compacto = false }: { receta: RecetaResumenAdmin
   };
 
   return (
-    <Box onClick={(event) => event.stopPropagation()} className={compacto ? 'lista-recetas__accion-movil' : undefined}>
-      <Button
-        size="small"
-        color={eliminacion ? 'error' : 'warning'}
-        startIcon={eliminacion ? <DeleteForeverOutlinedIcon /> : <ArchiveOutlinedIcon />}
-        onClick={() => setAbierto(true)}
-      >
-        {eliminacion ? 'Eliminar' : 'Archivar'}
-      </Button>
-      <Dialog open={abierto} onClose={() => !procesando && setAbierto(false)}>
-        <DialogTitle>{eliminacion ? 'Eliminar receta definitivamente' : 'Archivar receta'}</DialogTitle>
+    <Box onClick={(event) => event.stopPropagation()} className={`lista-recetas__acciones-fila${compacto ? ' lista-recetas__accion-movil' : ''}`}>
+      {archivada ? (
+        <>
+          <Tooltip title="Restaurar receta" arrow>
+            <IconButton size="small" color="primary" aria-label="Restaurar receta" onClick={() => setAccion('restaurar')}>
+              <RestoreOutlinedIcon />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="Eliminar receta" arrow>
+            <IconButton size="small" color="error" aria-label="Eliminar receta" onClick={() => setAccion('eliminar')}>
+              <DeleteForeverOutlinedIcon />
+            </IconButton>
+          </Tooltip>
+        </>
+      ) : (
+        <Tooltip title="Archivar receta" arrow>
+          <IconButton size="small" color="warning" aria-label="Archivar receta" onClick={() => setAccion('archivar')}>
+            <ArchiveOutlinedIcon />
+          </IconButton>
+        </Tooltip>
+      )}
+      <Dialog open={accion !== null} onClose={() => !procesando && setAccion(null)}>
+        <DialogTitle>{accion === 'eliminar' ? 'Eliminar receta definitivamente' : accion === 'restaurar' ? 'Restaurar receta' : 'Archivar receta'}</DialogTitle>
         <DialogContent>
-          {eliminacion
+          {accion === 'eliminar'
             ? `“${receta.titulo}” se eliminará junto con sus ingredientes y pasos. Esta acción no se puede deshacer.`
-            : `“${receta.titulo}” dejará de aparecer en la web pública y podrás restaurarla después.`}
+            : accion === 'restaurar'
+              ? `“${receta.titulo}” volverá a aparecer en la web pública.`
+              : `“${receta.titulo}” dejará de aparecer en la web pública y podrás restaurarla después.`}
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setAbierto(false)} disabled={procesando}>Cancelar</Button>
-          <Button variant="contained" color={eliminacion ? 'error' : 'warning'} onClick={confirmar} disabled={procesando}>
-            {eliminacion ? 'Eliminar definitivamente' : 'Archivar'}
+          <Button onClick={() => setAccion(null)} disabled={procesando}>Cancelar</Button>
+          <Button variant="contained" color={accion === 'eliminar' ? 'error' : accion === 'archivar' ? 'warning' : 'primary'} onClick={confirmar} disabled={procesando}>
+            {accion === 'eliminar' ? 'Eliminar definitivamente' : accion === 'restaurar' ? 'Restaurar' : 'Archivar'}
           </Button>
         </DialogActions>
       </Dialog>
