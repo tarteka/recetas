@@ -21,62 +21,32 @@ return static function (
     AdminSessionMiddleware $adminSessionMiddleware,
     AdminCsrfMiddleware $adminCsrfMiddleware
 ): void {
-    $app->get('/salud', [$recetaController, 'salud']);
-
-    $app->get('/recetas', [$recetaController, 'listar']);
-    $app->get('/recetas/{id:[0-9]+}', [$recetaController, 'obtener']);
-    $app->post('/recetas', [$recetaController, 'crear'])
-        ->add($apiTokenMiddleware);
-
-    $app->get('/categorias', [$recetaController, 'listarCategorias']);
-    $app->get('/etiquetas', [$recetaController, 'listarEtiquetas']);
-
-    $app->post(
-        '/recetas/{id:[0-9]+}/imagen',
-        [$imagenController, 'actualizar']
-    )->add($apiTokenMiddleware);
-
-    $app->get(
-        '/imagenes/{nombre:[a-f0-9]{32}\.webp}',
-        [$imagenController, 'mostrar']
+    (require __DIR__ . '/public.php')(
+        $app,
+        $recetaController,
+        $imagenController,
+        $apiTokenMiddleware
     );
 
-    $app->get('/admin/auth/google', [$adminAuthController, 'login']);
-    $app->get('/admin/auth/google/callback', [$adminAuthController, 'callback']);
-    $app->get('/admin/me', [$adminAuthController, 'me'])
-        ->add($adminSessionMiddleware);
-    $app->get('/admin/recetas', [$recetaController, 'listarAdmin'])
-        ->add($adminSessionMiddleware);
-    $app->get('/admin/{tipo:categorias|etiquetas}', [$taxonomiaController, 'listar'])->add($adminSessionMiddleware);
-    $app->post('/admin/{tipo:categorias|etiquetas}', [$taxonomiaController, 'crear'])->add($adminCsrfMiddleware)->add($adminSessionMiddleware);
-    $app->get('/admin/{tipo:categorias|etiquetas}/{id:[0-9]+}', [$taxonomiaController, 'obtener'])->add($adminSessionMiddleware);
-    $app->put('/admin/{tipo:categorias|etiquetas}/{id:[0-9]+}', [$taxonomiaController, 'actualizar'])->add($adminCsrfMiddleware)->add($adminSessionMiddleware);
-    $app->delete('/admin/{tipo:categorias|etiquetas}/{id:[0-9]+}', [$taxonomiaController, 'eliminar'])->add($adminCsrfMiddleware)->add($adminSessionMiddleware);
-    $app->post('/admin/recetas', [$recetaController, 'crear'])
-        ->add($adminCsrfMiddleware)
-        ->add($adminSessionMiddleware);
-    $app->get('/admin/recetas/{id:[0-9]+}', [$recetaController, 'obtenerAdmin'])
-        ->add($adminSessionMiddleware);
-    $app->put('/admin/recetas/{id:[0-9]+}', [$recetaController, 'actualizar'])
-        ->add($adminCsrfMiddleware)
-        ->add($adminSessionMiddleware);
-    $app->post('/admin/recetas/{id:[0-9]+}/imagen', [$imagenController, 'actualizar'])
-        ->add($adminCsrfMiddleware)
-        ->add($adminSessionMiddleware);
-    $app->delete('/admin/recetas/{id:[0-9]+}/imagen', [$imagenController, 'eliminar'])
-        ->add($adminCsrfMiddleware)
-        ->add($adminSessionMiddleware);
-    $app->delete('/admin/recetas/{id:[0-9]+}', [$recetaController, 'archivar'])
-        ->add($adminCsrfMiddleware)
-        ->add($adminSessionMiddleware);
-    $app->post('/admin/recetas/{id:[0-9]+}/restaurar', [$recetaController, 'restaurar'])
-        ->add($adminCsrfMiddleware)
-        ->add($adminSessionMiddleware);
-    $app->delete('/admin/recetas/{id:[0-9]+}/definitiva', [$imagenController, 'eliminarReceta'])
-        ->add($adminCsrfMiddleware)
-        ->add($adminSessionMiddleware);
+    (require __DIR__ . '/admin_auth.php')(
+        $app,
+        $adminAuthController,
+        $adminSessionMiddleware,
+        $adminCsrfMiddleware
+    );
 
-    $app->post('/admin/logout', [$adminAuthController, 'logout'])
-        ->add($adminCsrfMiddleware)
-        ->add($adminSessionMiddleware);
+    (require __DIR__ . '/admin_taxonomia.php')(
+        $app,
+        $taxonomiaController,
+        $adminSessionMiddleware,
+        $adminCsrfMiddleware
+    );
+
+    (require __DIR__ . '/admin_recetas.php')(
+        $app,
+        $recetaController,
+        $imagenController,
+        $adminSessionMiddleware,
+        $adminCsrfMiddleware
+    );
 };
