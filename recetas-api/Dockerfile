@@ -23,10 +23,18 @@ COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 WORKDIR /app
 
-COPY docker/entrypoint.sh /usr/local/bin/recetas-entrypoint
+COPY composer.json composer.lock ./
 
-# Permite ejecutar el entrypoint al iniciar el contenedor.
-RUN chmod +x /usr/local/bin/recetas-entrypoint
+RUN composer install --no-dev
+
+RUN echo '#!/bin/sh' > /usr/local/bin/recetas-entrypoint && \
+    echo 'set -e' >> /usr/local/bin/recetas-entrypoint && \
+    echo 'if [ -f "vendor/autoload.php" ] && [ -f "database/schema.sql" ]; then' >> /usr/local/bin/recetas-entrypoint && \
+    echo '  php -r "require \"/app/vendor/autoload.php\"; \$pdo = \App\Database::conectar(); \$sql = file_get_contents(\"/app/database/schema.sql\"); \$pdo->exec(\$sql);"' >> /usr/local/bin/recetas-entrypoint && \
+    echo '  echo "Base de datos inicializada correctamente."' >> /usr/local/bin/recetas-entrypoint && \
+    echo 'fi' >> /usr/local/bin/recetas-entrypoint && \
+    echo 'exec "$@"' >> /usr/local/bin/recetas-entrypoint && \
+    chmod +x /usr/local/bin/recetas-entrypoint
 
 ENTRYPOINT ["recetas-entrypoint"]
 
