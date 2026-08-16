@@ -52,10 +52,58 @@ body {
   background: #fff0c9;
 }
 
-.lista-recetas__acciones {
+.lista-recetas__panel {
+  display: grid;
+  gap: 18px;
+  margin: 0 0 20px;
+  padding: clamp(18px, 3vw, 28px);
+  border: 1px solid #dedbd1;
+  border-radius: 20px;
+  background: #fff;
+  box-shadow: 0 8px 28px rgb(42 51 39 / 6%);
+}
+
+.lista-recetas__encabezado {
   display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.lista-recetas__encabezado h1 {
+  margin-bottom: 3px;
+  color: #25352a;
+  font-family: Georgia, serif;
+  font-weight: 700;
+}
+
+.lista-recetas__encabezado > .MuiButton-root {
+  min-width: 150px;
+  min-height: 42px;
+  color: #fff;
+  background: #356044;
+}
+
+.lista-recetas__filtros {
+  display: grid;
+  grid-template-columns: minmax(260px, 1.6fr) repeat(4, minmax(150px, 1fr)) auto;
+  align-items: center;
+  gap: 12px;
+  padding-top: 18px;
+  border-top: 1px solid #ebe8df;
+}
+
+.lista-recetas__filtros .MuiInputBase-root {
+  background: #fbfaf7;
+}
+
+.lista-recetas__buscar .MuiSvgIcon-root {
+  color: #718077;
+}
+
+.lista-recetas__limpiar {
+  min-height: 40px;
+  white-space: nowrap;
 }
 
 .lista-recetas__vacia {
@@ -70,7 +118,7 @@ body {
   background: #fbfaf7;
 }
 
-.lista-recetas__archivo-movil {
+.lista-recetas__accion-movil {
   width: max-content;
   margin-top: 3px;
 }
@@ -176,12 +224,37 @@ body {
     border-radius: 10px;
   }
 
-  .lista-recetas__acciones {
+  .lista-recetas__panel {
+    margin-inline: 4px;
+    padding: 16px;
+    border-radius: 16px;
+  }
+
+  .lista-recetas__encabezado {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .lista-recetas__encabezado > .MuiButton-root {
     width: 100%;
   }
 
-  .lista-recetas__acciones > .MuiButton-root {
-    flex: 1 1 auto;
+  .lista-recetas__filtros {
+    grid-template-columns: 1fr;
+  }
+
+  .lista-recetas__limpiar {
+    width: 100%;
+  }
+}
+
+@media (min-width: 421px) and (max-width: 1100px) {
+  .lista-recetas__filtros {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .lista-recetas__buscar {
+    grid-column: 1 / -1;
   }
 }
 
