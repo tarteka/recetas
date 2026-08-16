@@ -100,6 +100,8 @@ comprobar($repository->cambiarArchivado($id, false), 'No restauró la receta');
 comprobar($repository->obtenerPorId($id) !== null, 'La receta restaurada no volvió a ser pública');
 $activasRestauradas = $repository->listar(1, 10, null, null, null, 'activas');
 comprobar(($activasRestauradas['paginacion']['total'] ?? -1) === 1, 'No devolvió la receta restaurada al listado activo');
+$ordenadasTitulo = $repository->listar(1, 10, null, null, null, 'activas', 'titulo', 'ASC');
+comprobar(($ordenadasTitulo['datos'][0]['titulo'] ?? null) === 'Receta actualizada', 'No ordenó por título');
 
 $imagenPrueba = '/imagenes/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.webp';
 comprobar($repository->actualizarImagen($id, $imagenPrueba), 'No asignó la imagen de prueba');

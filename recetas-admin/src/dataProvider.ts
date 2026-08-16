@@ -91,6 +91,8 @@ async function getList<RecordType extends RaRecord = RaRecord>(
   if (categoria) query.set('categoria', categoria);
   if (etiqueta) query.set('etiqueta', etiqueta);
   query.set('estado', estado);
+  query.set('ordenar', params.sort?.field ?? 'creado_en');
+  query.set('direccion', params.sort?.order ?? 'DESC');
 
   const response = await solicitarJson(`/api/admin/recetas?${query}`);
   if (!esRespuestaRecetas(response)) {

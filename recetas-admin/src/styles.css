@@ -52,6 +52,29 @@ body {
   background: #fff0c9;
 }
 
+.lista-recetas__acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.lista-recetas__vacia {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  margin: 24px;
+  padding: clamp(32px, 7vw, 72px) 24px;
+  text-align: center;
+  border: 1px dashed #bdc8bd;
+  border-radius: 18px;
+  background: #fbfaf7;
+}
+
+.lista-recetas__archivo-movil {
+  width: max-content;
+  margin-top: 3px;
+}
+
 .lista-recetas-movil {
   padding: 8px !important;
   background: transparent;
@@ -151,6 +174,14 @@ body {
   .lista-recetas-movil__imagen {
     width: 68px;
     border-radius: 10px;
+  }
+
+  .lista-recetas__acciones {
+    width: 100%;
+  }
+
+  .lista-recetas__acciones > .MuiButton-root {
+    flex: 1 1 auto;
   }
 }
 

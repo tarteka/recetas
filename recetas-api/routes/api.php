@@ -45,6 +45,10 @@ return static function (
         ->add($adminSessionMiddleware);
     $app->get('/admin/recetas', [$recetaController, 'listarAdmin'])
         ->add($adminSessionMiddleware);
+    $app->get('/admin/categorias', [$recetaController, 'listarCategoriasAdmin'])
+        ->add($adminSessionMiddleware);
+    $app->get('/admin/etiquetas', [$recetaController, 'listarEtiquetasAdmin'])
+        ->add($adminSessionMiddleware);
     $app->post('/admin/recetas', [$recetaController, 'crear'])
         ->add($adminCsrfMiddleware)
         ->add($adminSessionMiddleware);

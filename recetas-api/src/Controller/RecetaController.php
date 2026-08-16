@@ -53,7 +53,9 @@ final class RecetaController
                 $buscar,
                 $categoria,
                 $etiqueta,
-                'activas'
+                'activas',
+                'creado_en',
+                'DESC'
             )
         );
     }
@@ -69,6 +71,11 @@ final class RecetaController
         if (!in_array($estado, ['activas', 'archivadas', 'todas'], true)) {
             $estado = 'activas';
         }
+        $ordenar = (string) ($query['ordenar'] ?? 'creado_en');
+        if (!in_array($ordenar, ['id', 'titulo', 'creado_en'], true)) {
+            $ordenar = 'creado_en';
+        }
+        $direccion = strtoupper((string) ($query['direccion'] ?? 'DESC')) === 'ASC' ? 'ASC' : 'DESC';
 
         return $this->json(
             $response,
@@ -78,9 +85,25 @@ final class RecetaController
                 $this->parametroOpcional($query, 'buscar'),
                 $this->parametroOpcional($query, 'categoria'),
                 $this->parametroOpcional($query, 'etiqueta'),
-                $estado
+                $estado,
+                $ordenar,
+                $direccion
             )
         );
+    }
+
+    public function listarCategoriasAdmin(
+        ServerRequestInterface $request,
+        ResponseInterface $response
+    ): ResponseInterface {
+        return $this->json($response, $this->repository->listarCategoriasAdmin());
+    }
+
+    public function listarEtiquetasAdmin(
+        ServerRequestInterface $request,
+        ResponseInterface $response
+    ): ResponseInterface {
+        return $this->json($response, $this->repository->listarEtiquetasAdmin());
     }
 
     public function listarCategorias(

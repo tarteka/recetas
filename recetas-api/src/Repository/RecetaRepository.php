@@ -50,7 +50,9 @@ final class RecetaRepository
         ?string $buscar,
         ?string $categoria,
         ?string $etiqueta,
-        string $estado = 'activas'
+        string $estado = 'activas',
+        string $ordenar = 'creado_en',
+        string $direccion = 'DESC'
     ): array {
         $condiciones = [];
         $parametros = [];
@@ -86,6 +88,14 @@ final class RecetaRepository
             ? ''
             : ' WHERE ' . implode(' AND ', $condiciones);
 
+        $columnasOrden = [
+            'id' => 'r.id',
+            'titulo' => 'r.titulo COLLATE NOCASE',
+            'creado_en' => 'r.creado_en',
+        ];
+        $ordenSql = $columnasOrden[$ordenar] ?? $columnasOrden['creado_en'];
+        $direccionSql = strtoupper($direccion) === 'ASC' ? 'ASC' : 'DESC';
+
         $statement = $this->pdo->prepare(
             'SELECT COUNT(*) FROM recetas r' . $where
         );
@@ -106,7 +116,7 @@ final class RecetaRepository
                 r.creado_en,
                 r.archivada_en
             FROM recetas r' . $where . '
-            ORDER BY r.creado_en DESC, r.id DESC
+            ORDER BY ' . $ordenSql . ' ' . $direccionSql . ', r.id ' . $direccionSql . '
             LIMIT :limite OFFSET :desplazamiento'
         );
         foreach ($parametros as $nombre => $valor) {
@@ -168,6 +178,28 @@ final class RecetaRepository
         );
 
         return $statement->fetchAll();
+    }
+
+    public function listarCategoriasAdmin(): array
+    {
+        return $this->pdo->query(
+            'SELECT c.nombre, c.slug, COUNT(rc.receta_id) AS total_recetas
+             FROM categorias c
+             INNER JOIN receta_categorias rc ON rc.categoria_id = c.id
+             GROUP BY c.id, c.nombre, c.slug
+             ORDER BY c.nombre'
+        )->fetchAll();
+    }
+
+    public function listarEtiquetasAdmin(): array
+    {
+        return $this->pdo->query(
+            'SELECT e.nombre, e.slug, COUNT(re.receta_id) AS total_recetas
+             FROM etiquetas e
+             INNER JOIN receta_etiquetas re ON re.etiqueta_id = e.id
+             GROUP BY e.id, e.nombre, e.slug
+             ORDER BY e.nombre'
+        )->fetchAll();
     }
 
     private function incorporarTaxonomias(array &$recetas): void
