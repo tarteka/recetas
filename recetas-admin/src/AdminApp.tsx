@@ -4,6 +4,8 @@ import { AdminLogin } from './AdminLogin';
 import { authProvider } from './authProvider';
 import { dataProvider } from './dataProvider';
 import { temaRecetario } from './theme';
+import { i18nProvider } from './i18nProvider';
+import { ErrorAdmin, PaginaNoEncontrada } from './PaginasEstado';
 
 const RecetaList = lazy(() => import('./recetas/RecetaList').then((modulo) => ({ default: modulo.RecetaList })));
 const RecetaCreate = lazy(() => import('./recetas/RecetaCreate').then((modulo) => ({ default: modulo.RecetaCreate })));
@@ -24,7 +26,10 @@ export function AdminApp() {
       <Admin
         authProvider={authProvider}
         dataProvider={dataProvider}
+        i18nProvider={i18nProvider}
         loginPage={AdminLogin}
+        catchAll={PaginaNoEncontrada}
+        error={ErrorAdmin}
         requireAuth
         title="Mi Recetario"
         theme={temaRecetario}

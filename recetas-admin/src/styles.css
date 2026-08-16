@@ -52,6 +52,39 @@ body {
   }
 }
 
+.estado-admin {
+  display: grid;
+  justify-items: center;
+  gap: 14px;
+  width: min(calc(100% - 32px), 620px);
+  margin: clamp(32px, 10vh, 100px) auto;
+  padding: clamp(30px, 6vw, 56px);
+  text-align: center;
+  border: 1px solid #dedbd1;
+  border-radius: 22px;
+  background: #fff;
+  box-shadow: 0 12px 36px rgb(42 51 39 / 7%);
+}
+
+.estado-admin > .MuiSvgIcon-root {
+  color: #9b6532;
+  font-size: 52px;
+}
+
+.estado-admin h1 {
+  color: #25352a;
+  font-family: Georgia, serif;
+  font-weight: 700;
+}
+
+.estado-admin__acciones {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 8px;
+}
+
 .lista-recetas__taxonomias {
   display: flex;
   flex-wrap: wrap;
