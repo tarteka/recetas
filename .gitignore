@@ -3,6 +3,7 @@
 
 # PHP
 recetas-api/vendor/
+recetas-api/.phpunit.result.cache
 
 # React / Node
 recetas-web/node_modules/

@@ -394,6 +394,9 @@ cd recetas-web && npm run lint
 # Backend
 cd recetas-api
 composer validate
+composer install
+composer run stan   # PHPStan
+composer run test   # PHPUnit
 
 # Frontend web
 cd recetas-web

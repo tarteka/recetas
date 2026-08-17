@@ -13,6 +13,14 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      - name: Configurar PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: gd, pdo_sqlite, mbstring, curl, dom, xml, intl, fileinfo
+          coverage: none
+          tools: composer:v2
+
       - name: Validar composer.json
         run: |
           cd recetas-api
@@ -22,6 +30,27 @@ jobs:
         run: |
           find recetas-api/src -name "*.php" -exec php -l {} \;
           find recetas-api/bootstrap -name "*.php" -exec php -l {} \;
+
+      - name: Localizar caché de Composer
+        id: composer-cache
+        working-directory: recetas-api
+        run: echo "dir=$(composer config cache-files-dir)" >> "$GITHUB_OUTPUT"
+
+      - name: Cachear dependencias de Composer
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: ${{ runner.os }}-composer-${{ hashFiles('recetas-api/composer.lock') }}
+          restore-keys: ${{ runner.os }}-composer-
+
+      - name: Instalar dependencias
+        run: cd recetas-api && composer install --no-interaction --prefer-dist
+
+      - name: Análisis estático (PHPStan)
+        run: cd recetas-api && composer run stan
+
+      - name: Tests (PHPUnit)
+        run: cd recetas-api && composer run test
 
   frontend-web:
     name: Frontend Web - React/TypeScript
