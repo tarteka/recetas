@@ -107,6 +107,12 @@ final class ImagenService
             127
         );
 
+        if ($transparente === false) {
+            throw new RuntimeException(
+                'No se pudo preparar el color de fondo transparente'
+            );
+        }
+
         imagefill($destino, 0, 0, $transparente);
 
         $x = (int) floor(

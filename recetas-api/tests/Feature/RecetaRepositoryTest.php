@@ -223,9 +223,9 @@ final class RecetaRepositoryTest extends TestCase
         self::assertTrue($this->recetas->eliminarArchivada($id), 'No eliminó la receta archivada');
         self::assertNull($this->recetas->obtenerPorId($id, true), 'La receta eliminada sigue existiendo');
 
-        $relacionesEliminadas = (int) $this->pdo
-            ->query('SELECT COUNT(*) FROM receta_ingredientes WHERE receta_id = ' . $id)
-            ->fetchColumn();
+        $consulta = $this->pdo->query('SELECT COUNT(*) FROM receta_ingredientes WHERE receta_id = ' . $id);
+        self::assertNotFalse($consulta, 'No se pudo comprobar las relaciones de la receta eliminada');
+        $relacionesEliminadas = (int) $consulta->fetchColumn();
         self::assertSame(0, $relacionesEliminadas, 'No eliminó en cascada las relaciones de la receta');
     }
 }

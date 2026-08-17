@@ -70,12 +70,14 @@ final class AdminAuthFlowTest extends TestCase
         self::assertSame('accounts.google.com', parse_url($authorizationUrl, PHP_URL_HOST), 'Host OAuth incorrecto');
         self::assertSame('code', $query['response_type'] ?? null, 'No usa Authorization Code Flow');
 
-        $scopes = explode(' ', (string) ($query['scope'] ?? ''));
+        $scopeQuery = $query['scope'] ?? '';
+        $scopes = explode(' ', is_string($scopeQuery) ? $scopeQuery : '');
         sort($scopes);
         self::assertSame(['email', 'openid', 'profile'], $scopes, 'Scopes OIDC incorrectos');
 
         $state = $this->cookieValue($login->getHeaderLine('Set-Cookie'), AdminSessionService::STATE_COOKIE);
-        self::assertTrue(hash_equals($state, (string) ($query['state'] ?? '')), 'State no asociado a cookie');
+        $stateQuery = $query['state'] ?? '';
+        self::assertTrue(hash_equals($state, is_string($stateQuery) ? $stateQuery : ''), 'State no asociado a cookie');
     }
 
     public function test_state_invalido_se_rechaza_y_no_crea_sesion(): void

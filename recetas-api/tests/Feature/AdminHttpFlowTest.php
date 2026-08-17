@@ -129,7 +129,9 @@ final class AdminHttpFlowTest extends SlimAppTestCase
         $sesion = $this->crearSesionAdmin();
         $this->crearRecetaHttp($sesion);
 
-        $categoriaEnUsoId = (int) $this->pdo->query("SELECT id FROM categorias WHERE nombre = 'Pruebas'")->fetchColumn();
+        $consulta = $this->pdo->query("SELECT id FROM categorias WHERE nombre = 'Pruebas'");
+        self::assertNotFalse($consulta, 'No se pudo consultar la categoría de prueba');
+        $categoriaEnUsoId = (int) $consulta->fetchColumn();
         $intento = $this->app->handle($this->crearRequest('DELETE', '/admin/categorias/' . $categoriaEnUsoId, null, $sesion));
         self::assertSame(409, $intento->getStatusCode(), 'Se eliminó una categoría asociada a una receta');
     }
@@ -150,7 +152,9 @@ final class AdminHttpFlowTest extends SlimAppTestCase
 
         $origen = imagecreatetruecolor(320, 240);
         self::assertInstanceOf(GdImage::class, $origen, 'No se pudo crear la imagen de prueba');
-        imagefill($origen, 0, 0, imagecolorallocate($origen, 90, 130, 80));
+        $color = imagecolorallocate($origen, 90, 130, 80);
+        self::assertNotFalse($color, 'No se pudo asignar el color de prueba');
+        imagefill($origen, 0, 0, $color);
         ob_start();
         imagejpeg($origen, null, 85);
         $jpeg = ob_get_clean();
@@ -208,7 +212,9 @@ final class AdminHttpFlowTest extends SlimAppTestCase
         self::assertSame(200, $eliminada->getStatusCode(), 'No se eliminó definitivamente la receta archivada');
         self::assertNull($this->recetas->obtenerPorId($id, true), 'La receta eliminada sigue en SQLite');
 
-        $relaciones = (int) $this->pdo->query('SELECT COUNT(*) FROM receta_ingredientes WHERE receta_id = ' . $id)->fetchColumn();
+        $consulta = $this->pdo->query('SELECT COUNT(*) FROM receta_ingredientes WHERE receta_id = ' . $id);
+        self::assertNotFalse($consulta, 'No se pudo comprobar las relaciones de la receta eliminada');
+        $relaciones = (int) $consulta->fetchColumn();
         self::assertSame(0, $relaciones, 'Las relaciones no se eliminaron en cascada');
     }
 
