@@ -76,6 +76,7 @@ final class GoogleOidcClient implements OidcClientInterface
         $client->setRedirectUri($redirectUri);
         $client->setScopes(['openid', 'email', 'profile']);
         $client->setAccessType('online');
+        $client->setPrompt('select_account');
         return $client;
     }
 }

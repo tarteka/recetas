@@ -4,6 +4,7 @@ PRAGMA foreign_keys = ON;
 CREATE TABLE IF NOT EXISTS recetas (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     titulo TEXT NOT NULL,
+    slug TEXT,
     descripcion TEXT,
 
     fuente_url TEXT UNIQUE,
@@ -130,6 +131,9 @@ CREATE INDEX IF NOT EXISTS idx_receta_etiquetas_etiqueta
 
 CREATE INDEX IF NOT EXISTS idx_recetas_archivada_en
     ON recetas(archivada_en);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_recetas_slug
+    ON recetas(slug);
 
 -- Sesiones propias del panel administrativo. El identificador recibido en la
 -- cookie nunca se persiste en texto plano.

@@ -5,20 +5,19 @@ import EstadoPagina from '../components/EstadoPagina';
 import ImagenReceta from '../components/ImagenReceta';
 
 export default function PaginaDetalle() {
-  const { id } = useParams();
-  const recetaId = Number(id);
-  const idValido = Number.isInteger(recetaId) && recetaId > 0;
+  const { slug } = useParams();
+  const slugValido = typeof slug === 'string' && slug.trim() !== '';
   const [receta, setReceta] = useState<RecetaDetalle | null>(null);
-  const [estado, setEstado] = useState<'cargando' | 'error' | 'no-encontrada'>(idValido ? 'cargando' : 'no-encontrada');
+  const [estado, setEstado] = useState<'cargando' | 'error' | 'no-encontrada'>(slugValido ? 'cargando' : 'no-encontrada');
   const [intento, setIntento] = useState(0);
 
   useEffect(() => {
-    if (!idValido) return;
+    if (!slugValido) return;
     let activo = true;
-    obtenerReceta(recetaId).then((datos) => { if (activo) setReceta(datos); })
+    obtenerReceta(slug).then((datos) => { if (activo) setReceta(datos); })
       .catch((e: unknown) => { if (activo) setEstado(e instanceof ErrorApi && e.status === 404 ? 'no-encontrada' : 'error'); });
     return () => { activo = false; };
-  }, [idValido, intento, recetaId]);
+  }, [slugValido, intento, slug]);
 
   if (receta === null) return <main className="contenedor pagina-error"><Link className="volver" to="/">← Volver al recetario</Link><EstadoPagina
     titulo={estado === 'cargando' ? 'Cargando receta' : estado === 'no-encontrada' ? 'Receta no encontrada' : 'No pudimos cargar la receta'}

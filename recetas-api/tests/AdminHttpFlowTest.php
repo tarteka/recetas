@@ -178,12 +178,17 @@ try {
     comprobarHttp($creada->getStatusCode() === 201, 'No se creó la receta HTTP');
     $id = (int) (jsonRespuesta($creada)['id'] ?? 0);
     comprobarHttp($id > 0, 'La creación no devolvió un ID');
+    $slug = (string) (jsonRespuesta($creada)['slug'] ?? '');
+    comprobarHttp($slug === 'receta-http-temporal', 'La creación no devolvió el slug derivado del título');
 
     $categoriaEnUsoId = (int) $pdo->query("SELECT id FROM categorias WHERE nombre = 'Pruebas'")->fetchColumn();
     comprobarHttp($app->handle($crearRequest('DELETE', '/admin/categorias/' . $categoriaEnUsoId))->getStatusCode() === 409, 'Se eliminó una categoría asociada a una receta');
 
     $publica = $app->handle($crearRequest('GET', '/recetas/' . $id, null, false, null));
-    comprobarHttp($publica->getStatusCode() === 200, 'La receta creada no es pública');
+    comprobarHttp($publica->getStatusCode() === 200, 'La receta creada no es pública por id');
+    $publicaPorSlug = $app->handle($crearRequest('GET', '/recetas/' . $slug, null, false, null));
+    comprobarHttp($publicaPorSlug->getStatusCode() === 200, 'La receta creada no es pública por slug');
+    comprobarHttp((jsonRespuesta($publicaPorSlug)['id'] ?? null) === $id, 'La búsqueda por slug devolvió una receta distinta');
 
     $datos['titulo'] = 'Receta HTTP actualizada';
     $actualizada = $app->handle($crearRequest('PUT', '/admin/recetas/' . $id, json_encode($datos, JSON_THROW_ON_ERROR)));

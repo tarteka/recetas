@@ -9,6 +9,7 @@ export interface TaxonomiaResumen {
 
 export interface RecetaResumen {
   id: number;
+  slug: string;
   titulo: string;
   descripcion: string | null;
   imagen_url: string | null;
@@ -33,6 +34,7 @@ export interface PasoReceta { numero: number; instruccion: string; imagen_url: s
 
 export interface RecetaDetalle {
   id: number;
+  slug: string;
   titulo: string;
   descripcion: string | null;
   fuente_url: string | null;
@@ -98,8 +100,8 @@ export async function obtenerEtiquetas(signal?: AbortSignal): Promise<TaxonomiaR
   return respuesta.json() as Promise<TaxonomiaResumen[]>;
 }
 
-export async function obtenerReceta(id: number): Promise<RecetaDetalle> {
-  const respuesta = await fetch(`/api/recetas/${id}`);
+export async function obtenerReceta(identificador: string): Promise<RecetaDetalle> {
+  const respuesta = await fetch(`/api/recetas/${encodeURIComponent(identificador)}`);
   if (!respuesta.ok) throw new ErrorApi('No se pudo cargar la receta', respuesta.status);
   return respuesta.json() as Promise<RecetaDetalle>;
 }

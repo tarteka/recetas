@@ -131,10 +131,11 @@ final class RecetaController
         ResponseInterface $response,
         array $args
     ): ResponseInterface {
-        // Busca la receta utilizando el identificador recibido en la ruta.
-        $id = (int) ($args['id'] ?? 0);
+        // Busca la receta por slug y, si no existe, admite el id numérico
+        // heredado para no romper enlaces antiguos.
+        $identificador = trim((string) ($args['identificador'] ?? ''));
 
-        if ($id <= 0) {
+        if ($identificador === '') {
             return $this->json(
                 $response,
                 ['error' => 'Identificador de receta no válido'],
@@ -142,7 +143,11 @@ final class RecetaController
             );
         }
 
-        $receta = $this->repository->obtenerPorId($id);
+        $receta = $this->repository->obtenerPorSlug($identificador);
+
+        if ($receta === null && ctype_digit($identificador)) {
+            $receta = $this->repository->obtenerPorId((int) $identificador);
+        }
 
         if ($receta === null) {
             return $this->json(
@@ -209,10 +214,11 @@ final class RecetaController
         }
 
         $id = $this->repository->crear($datos);
+        $creada = $this->repository->obtenerPorId($id, true);
 
         return $this->json(
             $response,
-            ['id' => $id],
+            ['id' => $id, 'slug' => $creada['slug'] ?? null],
             201
         );
     }

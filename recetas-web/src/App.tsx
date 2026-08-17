@@ -8,7 +8,7 @@ export default function App() {
   return <div className="aplicacion">
     <Routes>
       <Route path="/" element={<PaginaListado />} />
-      <Route path="/recetas/:id" element={<PaginaDetalle />} />
+      <Route path="/recetas/:slug" element={<PaginaDetalle />} />
       <Route path="/acerca-de" element={<PaginaAcercaDe />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

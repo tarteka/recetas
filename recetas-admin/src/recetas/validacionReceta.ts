@@ -9,6 +9,10 @@ export const validarTitulo = [
     : 'El título es obligatorio',
 ];
 
+export const validarSlug = (valor: string | undefined) => (
+  !valor || /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(valor) ? undefined : 'Usa minúsculas, números y guiones'
+);
+
 export const validarRaciones = [
   minValue(1, 'Debe ser al menos 1'),
   (valor: unknown) => valor == null || valor === '' || Number.isInteger(Number(valor))

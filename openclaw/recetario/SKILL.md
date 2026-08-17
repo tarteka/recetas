@@ -16,7 +16,7 @@ Usa este skill cuando el usuario quiera guardar una receta de cocina, especialme
 4. Extrae y normaliza los datos.
 5. Genera el JSON de la receta con `imagen_url` siempre igual a `null`.
 6. Guarda la receta mediante `guardar-receta.sh`.
-7. Obtén y conserva el `id` devuelto por la API.
+7. Obtén y conserva el `id` y el `slug` devueltos por la API.
 8. Gestiona la imagen de forma independiente:
    - localiza la imagen principal original de la receta;
    - descárgala y valida que sea una imagen correcta;
@@ -91,11 +91,14 @@ La API espera un JSON con esta estructura:
 
 ```json
 {
-  "id": 123
+  "id": 123,
+  "slug": "marmitako-de-bonito"
 }
 ```
 
-6. Conserva el `id` devuelto.
+El `slug` lo genera siempre la API a partir del título (o resolviendo duplicados con un sufijo numérico); no lo generes ni lo envíes tú.
+
+6. Conserva el `id` y el `slug` devueltos.
 7. Solo considera creada la receta cuando el script finalice correctamente y la API devuelva un identificador.
 
 ## Imagen de la receta
@@ -231,8 +234,10 @@ Nunca:
 
 ## Resultado
 
-Si la receta y la imagen se guardan correctamente, informa de que la receta se ha añadido al recetario.
+El recetario público está en `https://recetas.proyectozero.org`. La URL final de una receta es siempre `https://recetas.proyectozero.org/recetas/<slug>`, usando el `slug` devuelto al guardarla.
 
-Si la receta se guarda correctamente pero falla la imagen, informa de que la receta se ha guardado, pero no se ha podido asociar una imagen.
+Si la receta y la imagen se guardan correctamente, informa de que la receta se ha añadido al recetario e incluye su enlace público.
+
+Si la receta se guarda correctamente pero falla la imagen, informa de que la receta se ha guardado (incluyendo su enlace público), pero no se ha podido asociar una imagen.
 
 Si falla el guardado de la receta, informa del fallo y no afirmes que la receta se ha guardado.

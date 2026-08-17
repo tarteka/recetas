@@ -12,6 +12,7 @@ export interface EtiquetaReceta {
 
 export interface RecetaResumen extends RaRecord<number> {
   id: number;
+  slug: string;
   titulo: string;
   descripcion: string | null;
   imagen_url: string | null;
@@ -26,6 +27,7 @@ export interface RecetaResumen extends RaRecord<number> {
 
 export interface RecetaResumenAdmin extends RaRecord<number> {
   id: number;
+  slug: string;
   titulo: string;
   imagen_url: string | null;
   creado_en: string;

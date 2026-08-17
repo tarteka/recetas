@@ -19,6 +19,7 @@ import {
   validarLista,
   validarMinutos,
   validarRaciones,
+  validarSlug,
   validarTitulo,
   validarUrlOpcional,
 } from './validacionReceta';
@@ -70,6 +71,13 @@ export function RecetaCreate() {
               source="titulo"
               label="Título"
               validate={validarTitulo}
+              fullWidth
+            />
+            <TextInput
+              source="slug"
+              label="Slug"
+              helperText="Dirección estable usada en la URL pública. Se genera desde el título si lo dejas vacío."
+              validate={validarSlug}
               fullWidth
             />
             <TextInput

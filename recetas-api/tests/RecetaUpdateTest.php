@@ -57,6 +57,19 @@ $actualizada = $repository->actualizar($id, [
 comprobar($actualizada, 'No se actualizó la receta existente');
 $receta = $repository->obtenerPorId($id);
 comprobar(($receta['titulo'] ?? null) === 'Receta actualizada', 'No actualizó la cabecera');
+comprobar(($receta['slug'] ?? null) === 'receta-actualizada', 'El slug no se derivó del título cuando la actualización no envió uno explícito');
+comprobar($repository->obtenerPorSlug('receta-actualizada') !== null, 'No se pudo recuperar la receta por su slug');
+
+$idDuplicado = $repository->crear([
+    'titulo' => 'Receta actualizada',
+    'ingredientes' => [['nombre' => 'Sal', 'texto_original' => 'Sal']],
+    'pasos' => [['numero' => 1, 'instruccion' => 'Probar.']],
+]);
+$recetaDuplicada = $repository->obtenerPorId($idDuplicado);
+comprobar(($recetaDuplicada['slug'] ?? null) === 'receta-actualizada-2', 'No se resolvió la colisión de slugs con un sufijo numérico');
+$repository->cambiarArchivado($idDuplicado, true);
+$repository->eliminarArchivada($idDuplicado);
+
 comprobar(count($receta['ingredientes'] ?? []) === 1, 'No reemplazó ingredientes');
 comprobar(($receta['ingredientes'][0]['nombre'] ?? null) === 'Boniato', 'Conservó el ingrediente anterior');
 comprobar(count($receta['pasos'] ?? []) === 2, 'No reemplazó los pasos');

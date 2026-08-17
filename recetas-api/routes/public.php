@@ -16,7 +16,7 @@ return static function (
     $app->get('/salud', [$recetaController, 'salud']);
 
     $app->get('/recetas', [$recetaController, 'listar']);
-    $app->get('/recetas/{id:[0-9]+}', [$recetaController, 'obtener']);
+    $app->get('/recetas/{identificador:[a-zA-Z0-9-]+}', [$recetaController, 'obtener']);
     $app->post('/recetas', [$recetaController, 'crear'])
         ->add($apiTokenMiddleware);
 

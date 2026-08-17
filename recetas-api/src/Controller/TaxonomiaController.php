@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use App\Repository\TaxonomiaRepository;
+use App\Service\Slugger;
 use JsonException;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -85,8 +86,7 @@ final class TaxonomiaController
 
     private function slug(string $texto): string
     {
-        $ascii = iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $texto) ?: $texto;
-        return trim((string) preg_replace('/[^a-z0-9]+/', '-', strtolower($ascii)), '-');
+        return Slugger::generar($texto);
     }
 
     private function tipo(array $args): string

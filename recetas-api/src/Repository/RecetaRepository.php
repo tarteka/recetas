@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Repository;
 
+use App\Service\Slugger;
 use PDO;
 use Throwable;
 
@@ -108,6 +109,7 @@ final class RecetaRepository
             'SELECT
                 r.id,
                 r.titulo,
+                r.slug,
                 r.descripcion,
                 r.imagen_url,
                 r.fuente_nombre,
@@ -256,20 +258,32 @@ final class RecetaRepository
 
     public function obtenerPorId(int $id, bool $incluirArchivadas = false): ?array
     {
-        // Recupera la cabecera de la receta solicitada.
+        return $this->obtenerPorCondicion('id', $id, $incluirArchivadas);
+    }
+
+    public function obtenerPorSlug(string $slug, bool $incluirArchivadas = false): ?array
+    {
+        return $this->obtenerPorCondicion('slug', $slug, $incluirArchivadas);
+    }
+
+    private function obtenerPorCondicion(string $columna, int|string $valor, bool $incluirArchivadas): ?array
+    {
+        // Recupera la cabecera de la receta solicitada, por id o por slug.
         $statement = $this->pdo->prepare(
             'SELECT *
             FROM recetas
-            WHERE id = :id' . ($incluirArchivadas ? '' : ' AND archivada_en IS NULL')
+            WHERE ' . $columna . ' = :valor' . ($incluirArchivadas ? '' : ' AND archivada_en IS NULL')
         );
 
-        $statement->execute(['id' => $id]);
+        $statement->execute(['valor' => $valor]);
 
         $receta = $statement->fetch();
 
         if ($receta === false) {
             return null;
         }
+
+        $id = (int) $receta['id'];
 
         // Recupera los ingredientes manteniendo su orden original.
         $statement = $this->pdo->prepare(
@@ -369,6 +383,7 @@ final class RecetaRepository
             $statement = $this->pdo->prepare(
                 'INSERT INTO recetas (
                     titulo,
+                    slug,
                     descripcion,
                     fuente_url,
                     fuente_nombre,
@@ -379,6 +394,7 @@ final class RecetaRepository
                     tiempo_total_min
                 ) VALUES (
                     :titulo,
+                    :slug,
                     :descripcion,
                     :fuente_url,
                     :fuente_nombre,
@@ -392,6 +408,7 @@ final class RecetaRepository
 
             $statement->execute([
                 'titulo' => $datos['titulo'],
+                'slug' => $this->resolverSlug($datos),
                 'descripcion' => $datos['descripcion'] ?? null,
                 'fuente_url' => $datos['fuente_url'] ?? null,
                 'fuente_nombre' => $datos['fuente_nombre'] ?? null,
@@ -451,6 +468,7 @@ final class RecetaRepository
             $statement = $this->pdo->prepare(
                 'UPDATE recetas SET
                     titulo = :titulo,
+                    slug = :slug,
                     descripcion = :descripcion,
                     fuente_url = :fuente_url,
                     fuente_nombre = :fuente_nombre,
@@ -465,6 +483,7 @@ final class RecetaRepository
             $statement->execute([
                 'id' => $id,
                 'titulo' => trim((string) $datos['titulo']),
+                'slug' => $this->resolverSlug($datos, $id),
                 'descripcion' => $datos['descripcion'] ?? null,
                 'fuente_url' => $datos['fuente_url'] ?? null,
                 'fuente_nombre' => $datos['fuente_nombre'] ?? null,
@@ -596,7 +615,7 @@ final class RecetaRepository
                 continue;
             }
 
-            $slug = $this->crearSlug($nombre);
+            $slug = Slugger::generar($nombre);
 
             $statement = $this->pdo->prepare(
                 'INSERT INTO categorias (nombre, slug)
@@ -650,7 +669,7 @@ final class RecetaRepository
                 continue;
             }
 
-            $slug = $this->crearSlug($nombre);
+            $slug = Slugger::generar($nombre);
 
             $statement = $this->pdo->prepare(
                 'INSERT INTO etiquetas (nombre, slug)
@@ -692,19 +711,43 @@ final class RecetaRepository
         }
     }
 
-    private function crearSlug(string $texto): string
+    /**
+     * Resuelve el slug de una receta a partir de los datos recibidos:
+     * usa el slug indicado explícitamente o lo deriva del título, y
+     * garantiza que sea único añadiendo un sufijo numérico si hace falta.
+     */
+    private function resolverSlug(array $datos, ?int $exceptoId = null): string
     {
-        // Normaliza un nombre para utilizarlo como slug simple.
-        $texto = mb_strtolower(trim($texto), 'UTF-8');
+        $entrada = trim((string) ($datos['slug'] ?? ''));
+        $base = Slugger::generar($entrada !== '' ? $entrada : (string) $datos['titulo']);
 
-        $texto = iconv(
-            'UTF-8',
-            'ASCII//TRANSLIT//IGNORE',
-            $texto
-        ) ?: $texto;
+        if ($base === '') {
+            $base = 'receta';
+        }
 
-        $texto = preg_replace('/[^a-z0-9]+/', '-', $texto) ?? '';
+        $slug = $base;
+        $sufijo = 2;
+        while ($this->slugEnUso($slug, $exceptoId)) {
+            $slug = $base . '-' . $sufijo;
+            $sufijo++;
+        }
 
-        return trim($texto, '-');
+        return $slug;
+    }
+
+    private function slugEnUso(string $slug, ?int $exceptoId): bool
+    {
+        $sql = 'SELECT EXISTS(SELECT 1 FROM recetas WHERE slug = :slug'
+            . ($exceptoId !== null ? ' AND id <> :id' : '')
+            . ')';
+
+        $statement = $this->pdo->prepare($sql);
+        $parametros = ['slug' => $slug];
+        if ($exceptoId !== null) {
+            $parametros['id'] = $exceptoId;
+        }
+        $statement->execute($parametros);
+
+        return (bool) $statement->fetchColumn();
     }
 }
