@@ -82,6 +82,10 @@ jobs:
           context: ./recetas-api
           file: ./recetas-api/Dockerfile.prod
           push: false
+          cache-from: type=gha,scope=recetas-api
+          cache-to: type=gha,mode=max,scope=recetas-api
+          secrets: |
+            composer_auth={"github-oauth":{"github.com":"${{ secrets.GITHUB_TOKEN }}"}}
 
       - name: Build recetas-web
         uses: docker/build-push-action@v7
@@ -89,6 +93,8 @@ jobs:
           context: ./recetas-web
           file: ./recetas-web/Dockerfile.prod
           push: false
+          cache-from: type=gha,scope=recetas-web
+          cache-to: type=gha,mode=max,scope=recetas-web
 
       - name: Build recetas-admin
         uses: docker/build-push-action@v7
@@ -96,3 +102,5 @@ jobs:
           context: ./recetas-admin
           file: ./recetas-admin/Dockerfile.prod
           push: false
+          cache-from: type=gha,scope=recetas-admin
+          cache-to: type=gha,mode=max,scope=recetas-admin

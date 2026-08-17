@@ -27,7 +27,8 @@ COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 WORKDIR /var/www/html
 COPY composer.json composer.lock ./
-RUN composer install \
+RUN --mount=type=secret,id=composer_auth,env=COMPOSER_AUTH \
+    composer install \
     --no-dev \
     --no-interaction \
     --no-progress \
