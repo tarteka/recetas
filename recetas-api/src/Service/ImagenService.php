@@ -75,12 +75,6 @@ final class ImagenService
         $anchoOrigen = imagesx($origen);
         $altoOrigen = imagesy($origen);
 
-        if ($anchoOrigen <= 0 || $altoOrigen <= 0) {
-            throw new RuntimeException(
-                'Las dimensiones de la imagen no son válidas'
-            );
-        }
-
         // Calcula un "cover": llena 1200x800 sin deformar la imagen.
         $escala = max(
             self::ANCHO / $anchoOrigen,

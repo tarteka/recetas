@@ -397,7 +397,17 @@ composer validate
 composer install
 composer run stan   # PHPStan
 composer run test   # PHPUnit
+```
 
+> **PHP nativo de Windows:** si instalas PHP directamente en Windows (por ejemplo
+> con Scoop) para correr `composer run stan`/`composer run test` sin Docker,
+> `phpstan.neon` fija `phpVersion: 80400` para que PHPStan analice siempre como
+> PHP 8.4 (el de producción/CI), aunque tu PHP local sea otra versión. Para
+> paridad total con CI (misma versión de PHP y extensiones), también puedes
+> correr los tests dentro de un contenedor `php:8.4-cli` con `gd`, `pdo_sqlite`
+> y `mbstring`.
+
+```bash
 # Frontend web
 cd recetas-web
 npm ci
