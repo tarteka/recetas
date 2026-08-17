@@ -55,9 +55,9 @@ final class OpenClawRecetaFlowTest extends SlimAppTestCase
 
         $persistida = $this->recetas->obtenerPorId($id);
         self::assertNotNull($persistida, 'La receta no quedó persistida en SQLite');
-        self::assertSame('https://example.com/tarta-de-manzana', $persistida['fuente_url'] ?? null, 'No guardó la URL de origen');
-        self::assertCount(2, $persistida['ingredientes'] ?? [], 'No guardó todos los ingredientes parseados');
-        self::assertCount(2, $persistida['pasos'] ?? [], 'No guardó todos los pasos parseados');
+        self::assertSame('https://example.com/tarta-de-manzana', $persistida->fuenteUrl, 'No guardó la URL de origen');
+        self::assertCount(2, $persistida->ingredientes, 'No guardó todos los ingredientes parseados');
+        self::assertCount(2, $persistida->pasos, 'No guardó todos los pasos parseados');
     }
 
     public function test_rechaza_una_receta_invalida_con_422_sin_filtrar_datos_internos(): void

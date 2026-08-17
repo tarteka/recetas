@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
+use App\Model\RecetaDatos;
 use App\Repository\RecetaRepository;
 use App\Service\RecetaValidator;
 use JsonException;
@@ -126,6 +127,7 @@ final class RecetaController
         );
     }
 
+    /** @param array<string, string> $args */
     public function obtener(
         ServerRequestInterface $request,
         ResponseInterface $response,
@@ -163,6 +165,7 @@ final class RecetaController
         );
     }
 
+    /** @param array<string, string> $args */
     public function obtenerAdmin(
         ServerRequestInterface $request,
         ResponseInterface $response,
@@ -213,16 +216,20 @@ final class RecetaController
             return $this->json($response, ['error' => $errores[0], 'errores' => $errores], 422);
         }
 
-        $id = $this->repository->crear($datos);
+        $id = $this->repository->crear(RecetaDatos::fromArray($datos));
         $creada = $this->repository->obtenerPorId($id, true);
 
         return $this->json(
             $response,
-            ['id' => $id, 'slug' => $creada['slug'] ?? null],
+            ['id' => $id, 'slug' => $creada?->slug],
             201
         );
     }
-    /** Actualiza una receta completa desde el panel administrativo. */
+    /**
+     * Actualiza una receta completa desde el panel administrativo.
+     *
+     * @param array<string, string> $args
+     */
     public function actualizar(
         ServerRequestInterface $request,
         ResponseInterface $response,
@@ -253,7 +260,7 @@ final class RecetaController
             return $this->json($response, ['error' => $errores[0], 'errores' => $errores], 422);
         }
 
-        if (!$this->repository->actualizar($id, $datos)) {
+        if (!$this->repository->actualizar($id, RecetaDatos::fromArray($datos))) {
             return $this->json($response, ['error' => 'Receta no encontrada'], 404);
         }
 
@@ -263,6 +270,7 @@ final class RecetaController
         );
     }
 
+    /** @param array<string, string> $args */
     public function archivar(
         ServerRequestInterface $request,
         ResponseInterface $response,
@@ -271,6 +279,7 @@ final class RecetaController
         return $this->cambiarArchivado($response, $args, true);
     }
 
+    /** @param array<string, string> $args */
     public function restaurar(
         ServerRequestInterface $request,
         ResponseInterface $response,
@@ -279,6 +288,7 @@ final class RecetaController
         return $this->cambiarArchivado($response, $args, false);
     }
 
+    /** @param array<string, string> $args */
     private function cambiarArchivado(
         ResponseInterface $response,
         array $args,
@@ -298,6 +308,7 @@ final class RecetaController
         ]);
     }
 
+    /** @param array<string, mixed> $query */
     private function parametroOpcional(array $query, string $nombre): ?string
     {
         $valor = trim((string) ($query[$nombre] ?? ''));

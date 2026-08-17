@@ -40,7 +40,10 @@ abstract class SlimAppTestCase extends TestCase
     protected const API_TOKEN = 'token-http-pruebas';
 
     protected PDO $pdo;
+
+    /** @var App<\Psr\Container\ContainerInterface|null> */
     protected App $app;
+
     protected RecetaRepository $recetas;
     protected AdminSessionService $sesiones;
     protected string $directorioImagenes;
@@ -97,7 +100,12 @@ abstract class SlimAppTestCase extends TestCase
         $csrfMiddleware = new AdminCsrfMiddleware($config);
         $tokenMiddleware = new ApiTokenMiddleware();
 
-        $this->app = AppFactory::create();
+        /** @var App<\Psr\Container\ContainerInterface|null> $app */
+        $app = AppFactory::create();
+        // Slim\App<TContainerInterface> es invariante: PHPStan no unifica dos instancias
+        // de App<ContainerInterface|null> aunque sean el mismo tipo.
+        // @phpstan-ignore assign.propertyType
+        $this->app = $app;
         $this->app->addRoutingMiddleware();
         $this->app->addErrorMiddleware(false, true, true);
         $registrarRutas = require __DIR__ . '/../../routes/api.php';

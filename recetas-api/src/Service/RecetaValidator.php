@@ -6,7 +6,14 @@ namespace App\Service;
 
 final class RecetaValidator
 {
-    /** @return list<string> */
+    /**
+     * Valida el JSON recibido sin asumir ninguna forma: es la puerta de
+     * entrada de datos externos (admin o el token de OpenClaw), aún no
+     * garantiza la forma de RecetaDatos.
+     *
+     * @param array<string, mixed> $datos
+     * @return list<string>
+     */
     public function validar(array $datos): array
     {
         $errores = [];
@@ -71,7 +78,10 @@ final class RecetaValidator
         return array_values(array_unique($errores));
     }
 
-    /** @param list<string> $errores */
+    /**
+     * @param array<string, mixed> $datos
+     * @param list<string> $errores
+     */
     private function validarEntero(array $datos, string $campo, int $minimo, string $etiqueta, array &$errores): void
     {
         $valor = $datos[$campo] ?? null;

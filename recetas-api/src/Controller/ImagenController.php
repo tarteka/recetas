@@ -19,6 +19,7 @@ final class ImagenController
     ) {
     }
 
+    /** @param array<string, string> $args */
     public function actualizar(
         ServerRequestInterface $request,
         ResponseInterface $response,
@@ -69,7 +70,7 @@ final class ImagenController
                 );
             }
 
-            $imagenAnterior = $receta['imagen_url'] ?? null;
+            $imagenAnterior = $receta->imagenUrl;
             if (
                 is_string($imagenAnterior)
                 && $imagenAnterior !== $imagenUrl
@@ -95,6 +96,7 @@ final class ImagenController
         }
     }
 
+    /** @param array<string, string> $args */
     public function eliminar(
         ServerRequestInterface $request,
         ResponseInterface $response,
@@ -114,7 +116,7 @@ final class ImagenController
             return $this->json($response, ['error' => 'Receta no encontrada'], 404);
         }
 
-        $imagenAnterior = $receta['imagen_url'] ?? null;
+        $imagenAnterior = $receta->imagenUrl;
         if (!$this->repository->actualizarImagen((int) $id, null)) {
             return $this->json($response, ['error' => 'No se pudo actualizar la receta'], 409);
         }
@@ -129,6 +131,7 @@ final class ImagenController
         return $this->json($response, ['imagen_url' => null]);
     }
 
+    /** @param array<string, string> $args */
     public function eliminarReceta(
         ServerRequestInterface $request,
         ResponseInterface $response,
@@ -147,14 +150,14 @@ final class ImagenController
         if ($receta === null) {
             return $this->json($response, ['error' => 'Receta no encontrada'], 404);
         }
-        if (($receta['archivada_en'] ?? null) === null) {
+        if ($receta->archivadaEn === null) {
             return $this->json($response, ['error' => 'La receta debe archivarse antes de eliminarla'], 409);
         }
         if (!$this->repository->eliminarArchivada((int) $id)) {
             return $this->json($response, ['error' => 'No se pudo eliminar la receta'], 409);
         }
 
-        $imagenAnterior = $receta['imagen_url'] ?? null;
+        $imagenAnterior = $receta->imagenUrl;
         if (is_string($imagenAnterior) && !$this->repository->imagenEnUso($imagenAnterior)) {
             try {
                 $this->imagenService->eliminar($imagenAnterior);
@@ -166,6 +169,7 @@ final class ImagenController
         return $this->json($response, ['eliminada' => true, 'id' => (int) $id]);
     }
 
+    /** @param array<string, string> $args */
     public function mostrar(
         ServerRequestInterface $request,
         ResponseInterface $response,
@@ -190,6 +194,7 @@ final class ImagenController
             ->withHeader('Content-Type', 'image/webp');
     }
 
+    /** @param array<string, mixed> $datos */
     private function json(
         ResponseInterface $response,
         array $datos,

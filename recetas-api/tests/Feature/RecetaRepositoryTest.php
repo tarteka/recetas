@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature;
 
+use App\Model\RecetaDatos;
 use App\Repository\RecetaRepository;
 use PDO;
 use PDOException;
@@ -29,7 +30,7 @@ final class RecetaRepositoryTest extends TestCase
 
     public function test_actualizar_reemplaza_cabecera_ingredientes_pasos_y_taxonomia(): void
     {
-        $id = $this->recetas->crear([
+        $id = $this->recetas->crear(RecetaDatos::fromArray([
             'titulo' => 'Receta original',
             'ingredientes' => [[
                 'nombre' => 'Patata',
@@ -41,9 +42,9 @@ final class RecetaRepositoryTest extends TestCase
                 'numero' => 1,
                 'instruccion' => 'Cocer.',
             ]],
-        ]);
+        ]));
 
-        $actualizada = $this->recetas->actualizar($id, [
+        $actualizada = $this->recetas->actualizar($id, RecetaDatos::fromArray([
             'titulo' => 'Receta actualizada',
             'descripcion' => 'Descripción nueva',
             'raciones' => 4,
@@ -60,15 +61,16 @@ final class RecetaRepositoryTest extends TestCase
             ],
             'categorias' => [['nombre' => 'Platos principales']],
             'etiquetas' => [['nombre' => 'Horno']],
-        ]);
+        ]));
 
         self::assertTrue($actualizada, 'No se actualizó la receta existente');
 
         $receta = $this->recetas->obtenerPorId($id);
-        self::assertSame('Receta actualizada', $receta['titulo'] ?? null, 'No actualizó la cabecera');
+        self::assertNotNull($receta, 'No se recuperó la receta actualizada');
+        self::assertSame('Receta actualizada', $receta->titulo, 'No actualizó la cabecera');
         self::assertSame(
             'receta-actualizada',
-            $receta['slug'] ?? null,
+            $receta->slug,
             'El slug no se derivó del título cuando la actualización no envió uno explícito'
         );
         self::assertNotNull(
@@ -76,129 +78,129 @@ final class RecetaRepositoryTest extends TestCase
             'No se pudo recuperar la receta por su slug'
         );
 
-        self::assertCount(1, $receta['ingredientes'] ?? [], 'No reemplazó ingredientes');
-        self::assertSame('Boniato', $receta['ingredientes'][0]['nombre'] ?? null, 'Conservó el ingrediente anterior');
-        self::assertCount(2, $receta['pasos'] ?? [], 'No reemplazó los pasos');
+        self::assertCount(1, $receta->ingredientes, 'No reemplazó ingredientes');
+        self::assertSame('Boniato', $receta->ingredientes[0]->nombre, 'Conservó el ingrediente anterior');
+        self::assertCount(2, $receta->pasos, 'No reemplazó los pasos');
         self::assertSame(
             'Platos principales',
-            $receta['categorias'][0]['nombre'] ?? null,
+            $receta->categorias[0]->nombre,
             'No guardó categorías estructuradas'
         );
-        self::assertSame('Horno', $receta['etiquetas'][0]['nombre'] ?? null, 'No guardó etiquetas estructuradas');
+        self::assertSame('Horno', $receta->etiquetas[0]->nombre, 'No guardó etiquetas estructuradas');
     }
 
     public function test_resuelve_colisiones_de_slug_con_sufijo_numerico(): void
     {
-        $this->recetas->crear([
+        $this->recetas->crear(RecetaDatos::fromArray([
             'titulo' => 'Receta actualizada',
             'ingredientes' => [['nombre' => 'Sal', 'texto_original' => 'Sal']],
             'pasos' => [['numero' => 1, 'instruccion' => 'Probar.']],
-        ]);
+        ]));
 
-        $idDuplicado = $this->recetas->crear([
+        $idDuplicado = $this->recetas->crear(RecetaDatos::fromArray([
             'titulo' => 'Receta actualizada',
             'ingredientes' => [['nombre' => 'Sal', 'texto_original' => 'Sal']],
             'pasos' => [['numero' => 1, 'instruccion' => 'Probar.']],
-        ]);
+        ]));
 
         $recetaDuplicada = $this->recetas->obtenerPorId($idDuplicado);
         self::assertSame(
             'receta-actualizada-2',
-            $recetaDuplicada['slug'] ?? null,
+            $recetaDuplicada?->slug,
             'No se resolvió la colisión de slugs con un sufijo numérico'
         );
     }
 
     public function test_actualizar_devuelve_false_para_un_id_inexistente(): void
     {
-        $actualizada = $this->recetas->actualizar(999, [
+        $actualizada = $this->recetas->actualizar(999, RecetaDatos::fromArray([
             'titulo' => 'Inexistente',
             'ingredientes' => [],
             'pasos' => [],
-        ]);
+        ]));
 
         self::assertFalse($actualizada, 'Aceptó un identificador inexistente');
     }
 
     public function test_actualizar_hace_rollback_si_los_pasos_tienen_numero_duplicado(): void
     {
-        $id = $this->recetas->crear([
+        $id = $this->recetas->crear(RecetaDatos::fromArray([
             'titulo' => 'Receta con rollback',
             'ingredientes' => [['nombre' => 'Sal', 'texto_original' => 'Sal']],
             'pasos' => [['numero' => 1, 'instruccion' => 'Probar.']],
-        ]);
+        ]));
 
         $this->expectException(PDOException::class);
 
         try {
-            $this->recetas->actualizar($id, [
+            $this->recetas->actualizar($id, RecetaDatos::fromArray([
                 'titulo' => 'No debe persistir',
                 'ingredientes' => [['nombre' => 'Sal', 'texto_original' => 'Sal']],
                 'pasos' => [
                     ['numero' => 1, 'instruccion' => 'Uno'],
                     ['numero' => 1, 'instruccion' => 'Duplicado'],
                 ],
-            ]);
+            ]));
         } finally {
             $receta = $this->recetas->obtenerPorId($id);
-            self::assertSame('Receta con rollback', $receta['titulo'] ?? null, 'La transacción no hizo rollback');
-            self::assertCount(1, $receta['pasos'] ?? [], 'El rollback dejó relaciones incompletas');
+            self::assertSame('Receta con rollback', $receta?->titulo, 'La transacción no hizo rollback');
+            self::assertCount(1, $receta->pasos, 'El rollback dejó relaciones incompletas');
         }
     }
 
     public function test_archivar_oculta_la_receta_del_publico_y_restaurar_la_recupera(): void
     {
-        $id = $this->recetas->crear([
+        $id = $this->recetas->crear(RecetaDatos::fromArray([
             'titulo' => 'Receta archivable',
             'ingredientes' => [['nombre' => 'Sal', 'texto_original' => 'Sal']],
             'pasos' => [['numero' => 1, 'instruccion' => 'Probar.']],
-        ]);
+        ]));
 
         self::assertTrue($this->recetas->cambiarArchivado($id, true), 'No archivó la receta');
         self::assertNull($this->recetas->obtenerPorId($id), 'La receta archivada sigue siendo pública');
         $recetaArchivada = $this->recetas->obtenerPorId($id, true);
-        self::assertNotNull($recetaArchivada['archivada_en'] ?? null, 'No registró la fecha de archivado');
+        self::assertNotNull($recetaArchivada?->archivadaEn, 'No registró la fecha de archivado');
 
         $activas = $this->recetas->listar(1, 10, null, null, null, 'activas');
         $archivadas = $this->recetas->listar(1, 10, null, null, null, 'archivadas');
-        self::assertSame(0, $activas['paginacion']['total'] ?? -1, 'Incluyó una receta archivada entre las activas');
-        self::assertSame(1, $archivadas['paginacion']['total'] ?? -1, 'No incluyó la receta en el archivo');
+        self::assertSame(0, $activas['paginacion']['total'], 'Incluyó una receta archivada entre las activas');
+        self::assertSame(1, $archivadas['paginacion']['total'], 'No incluyó la receta en el archivo');
 
         self::assertTrue($this->recetas->cambiarArchivado($id, false), 'No restauró la receta');
         self::assertNotNull($this->recetas->obtenerPorId($id), 'La receta restaurada no volvió a ser pública');
         $activasRestauradas = $this->recetas->listar(1, 10, null, null, null, 'activas');
         self::assertSame(
             1,
-            $activasRestauradas['paginacion']['total'] ?? -1,
+            $activasRestauradas['paginacion']['total'],
             'No devolvió la receta restaurada al listado activo'
         );
     }
 
     public function test_listar_ordena_por_titulo(): void
     {
-        $this->recetas->crear([
+        $this->recetas->crear(RecetaDatos::fromArray([
             'titulo' => 'Zanahorias asadas',
             'ingredientes' => [['nombre' => 'Zanahoria', 'texto_original' => 'Zanahoria']],
             'pasos' => [['numero' => 1, 'instruccion' => 'Asar.']],
-        ]);
-        $this->recetas->crear([
+        ]));
+        $this->recetas->crear(RecetaDatos::fromArray([
             'titulo' => 'Ajo confitado',
             'ingredientes' => [['nombre' => 'Ajo', 'texto_original' => 'Ajo']],
             'pasos' => [['numero' => 1, 'instruccion' => 'Confitar.']],
-        ]);
+        ]));
 
         $ordenadas = $this->recetas->listar(1, 10, null, null, null, 'activas', 'titulo', 'ASC');
 
-        self::assertSame('Ajo confitado', $ordenadas['datos'][0]['titulo'] ?? null, 'No ordenó por título');
+        self::assertSame('Ajo confitado', $ordenadas['datos'][0]->titulo, 'No ordenó por título');
     }
 
     public function test_actualizar_imagen_marca_y_libera_el_uso(): void
     {
-        $id = $this->recetas->crear([
+        $id = $this->recetas->crear(RecetaDatos::fromArray([
             'titulo' => 'Receta con imagen',
             'ingredientes' => [['nombre' => 'Sal', 'texto_original' => 'Sal']],
             'pasos' => [['numero' => 1, 'instruccion' => 'Probar.']],
-        ]);
+        ]));
         $imagenPrueba = '/imagenes/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.webp';
 
         self::assertTrue($this->recetas->actualizarImagen($id, $imagenPrueba), 'No asignó la imagen de prueba');
@@ -210,11 +212,11 @@ final class RecetaRepositoryTest extends TestCase
 
     public function test_solo_elimina_definitivamente_recetas_archivadas_y_en_cascada(): void
     {
-        $id = $this->recetas->crear([
+        $id = $this->recetas->crear(RecetaDatos::fromArray([
             'titulo' => 'Receta eliminable',
             'ingredientes' => [['nombre' => 'Sal', 'texto_original' => 'Sal']],
             'pasos' => [['numero' => 1, 'instruccion' => 'Probar.']],
-        ]);
+        ]));
 
         self::assertFalse($this->recetas->eliminarArchivada($id), 'Eliminó una receta activa');
         self::assertTrue($this->recetas->cambiarArchivado($id, true), 'No archivó la receta eliminable');
