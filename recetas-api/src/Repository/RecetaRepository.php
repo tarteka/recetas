@@ -4,10 +4,22 @@ declare(strict_types=1);
 
 namespace App\Repository;
 
+use App\Model\Categoria;
+use App\Model\Etiqueta;
+use App\Model\Ingrediente;
+use App\Model\Paso;
+use App\Model\Receta;
+use App\Model\RecetaDatos;
+use App\Model\RecetaResumen;
+use App\Model\TaxonomiaConteo;
 use App\Service\Slugger;
 use PDO;
 use Throwable;
 
+/**
+ * @phpstan-import-type IngredienteDatos from RecetaDatos
+ * @phpstan-import-type PasoDatos from RecetaDatos
+ */
 final class RecetaRepository
 {
     public function __construct(
@@ -45,6 +57,12 @@ final class RecetaRepository
         return (bool) $statement->fetchColumn();
     }
 
+    /**
+     * @return array{
+     *     datos: list<RecetaResumen>,
+     *     paginacion: array{pagina: int, por_pagina: int, total: int, total_paginas: int},
+     * }
+     */
     public function listar(
         int $pagina,
         int $porPagina,
@@ -131,9 +149,18 @@ final class RecetaRepository
             PDO::PARAM_INT
         );
         $statement->execute();
-        $recetas = $statement->fetchAll();
+        $filas = $statement->fetchAll();
 
-        $this->incorporarTaxonomias($recetas);
+        $taxonomias = $this->incorporarTaxonomias($filas);
+
+        $recetas = array_map(
+            static fn(array $fila): RecetaResumen => RecetaResumen::desdeFila(
+                $fila,
+                $taxonomias[(int) $fila['id']]['categorias'] ?? [],
+                $taxonomias[(int) $fila['id']]['etiquetas'] ?? []
+            ),
+            $filas
+        );
 
         return [
             'datos' => $recetas,
@@ -146,6 +173,7 @@ final class RecetaRepository
         ];
     }
 
+    /** @return list<TaxonomiaConteo> */
     public function listarCategorias(): array
     {
         $statement = $this->pdo->query(
@@ -161,9 +189,10 @@ final class RecetaRepository
             ORDER BY c.nombre'
         );
 
-        return $statement->fetchAll();
+        return array_map(TaxonomiaConteo::desdeFila(...), $statement->fetchAll());
     }
 
+    /** @return list<TaxonomiaConteo> */
     public function listarEtiquetas(): array
     {
         $statement = $this->pdo->query(
@@ -179,48 +208,55 @@ final class RecetaRepository
             ORDER BY e.nombre'
         );
 
-        return $statement->fetchAll();
+        return array_map(TaxonomiaConteo::desdeFila(...), $statement->fetchAll());
     }
 
+    /** @return list<TaxonomiaConteo> */
     public function listarCategoriasAdmin(): array
     {
-        return $this->pdo->query(
+        $filas = $this->pdo->query(
             'SELECT c.nombre, c.slug, COUNT(rc.receta_id) AS total_recetas
              FROM categorias c
              INNER JOIN receta_categorias rc ON rc.categoria_id = c.id
              GROUP BY c.id, c.nombre, c.slug
              ORDER BY c.nombre'
         )->fetchAll();
+
+        return array_map(TaxonomiaConteo::desdeFila(...), $filas);
     }
 
+    /** @return list<TaxonomiaConteo> */
     public function listarEtiquetasAdmin(): array
     {
-        return $this->pdo->query(
+        $filas = $this->pdo->query(
             'SELECT e.nombre, e.slug, COUNT(re.receta_id) AS total_recetas
              FROM etiquetas e
              INNER JOIN receta_etiquetas re ON re.etiqueta_id = e.id
              GROUP BY e.id, e.nombre, e.slug
              ORDER BY e.nombre'
         )->fetchAll();
+
+        return array_map(TaxonomiaConteo::desdeFila(...), $filas);
     }
 
-    private function incorporarTaxonomias(array &$recetas): void
+    /**
+     * Recupera, en dos consultas por lotes, las categorías y etiquetas de
+     * todas las recetas indicadas.
+     *
+     * @param list<array<string, mixed>> $filas
+     * @return array<int, array{categorias: list<Categoria>, etiquetas: list<Etiqueta>}>
+     */
+    private function incorporarTaxonomias(array $filas): array
     {
-        if ($recetas === []) {
-            return;
-        }
-
-        $recetasPorId = [];
-        foreach ($recetas as $indice => $receta) {
-            $recetas[$indice]['categorias'] = [];
-            $recetas[$indice]['etiquetas'] = [];
-            $recetasPorId[(int) $receta['id']] = $indice;
+        if ($filas === []) {
+            return [];
         }
 
         $ids = array_map(
-            static fn(array $receta): int => (int) $receta['id'],
-            $recetas
+            static fn(array $fila): int => (int) $fila['id'],
+            $filas
         );
+        $taxonomias = array_fill_keys($ids, ['categorias' => [], 'etiquetas' => []]);
         $marcadores = implode(',', array_fill(0, count($ids), '?'));
 
         $statement = $this->pdo->prepare(
@@ -232,11 +268,7 @@ final class RecetaRepository
         );
         $statement->execute($ids);
         foreach ($statement->fetchAll() as $categoria) {
-            $indice = $recetasPorId[(int) $categoria['receta_id']];
-            $recetas[$indice]['categorias'][] = [
-                'nombre' => $categoria['nombre'],
-                'slug' => $categoria['slug'],
-            ];
+            $taxonomias[(int) $categoria['receta_id']]['categorias'][] = Categoria::desdeFila($categoria);
         }
 
         $statement = $this->pdo->prepare(
@@ -248,25 +280,23 @@ final class RecetaRepository
         );
         $statement->execute($ids);
         foreach ($statement->fetchAll() as $etiqueta) {
-            $indice = $recetasPorId[(int) $etiqueta['receta_id']];
-            $recetas[$indice]['etiquetas'][] = [
-                'nombre' => $etiqueta['nombre'],
-                'slug' => $etiqueta['slug'],
-            ];
+            $taxonomias[(int) $etiqueta['receta_id']]['etiquetas'][] = Etiqueta::desdeFila($etiqueta);
         }
+
+        return $taxonomias;
     }
 
-    public function obtenerPorId(int $id, bool $incluirArchivadas = false): ?array
+    public function obtenerPorId(int $id, bool $incluirArchivadas = false): ?Receta
     {
         return $this->obtenerPorCondicion('id', $id, $incluirArchivadas);
     }
 
-    public function obtenerPorSlug(string $slug, bool $incluirArchivadas = false): ?array
+    public function obtenerPorSlug(string $slug, bool $incluirArchivadas = false): ?Receta
     {
         return $this->obtenerPorCondicion('slug', $slug, $incluirArchivadas);
     }
 
-    private function obtenerPorCondicion(string $columna, int|string $valor, bool $incluirArchivadas): ?array
+    private function obtenerPorCondicion(string $columna, int|string $valor, bool $incluirArchivadas): ?Receta
     {
         // Recupera la cabecera de la receta solicitada, por id o por slug.
         $statement = $this->pdo->prepare(
@@ -302,7 +332,7 @@ final class RecetaRepository
         );
 
         $statement->execute(['receta_id' => $id]);
-        $receta['ingredientes'] = $statement->fetchAll();
+        $ingredientes = array_map(Ingrediente::desdeFila(...), $statement->fetchAll());
 
         // Recupera los pasos de elaboración ordenados.
         $statement = $this->pdo->prepare(
@@ -316,7 +346,7 @@ final class RecetaRepository
         );
 
         $statement->execute(['receta_id' => $id]);
-        $receta['pasos'] = $statement->fetchAll();
+        $pasos = array_map(Paso::desdeFila(...), $statement->fetchAll());
 
         // Recupera las categorías asociadas.
         $statement = $this->pdo->prepare(
@@ -331,7 +361,7 @@ final class RecetaRepository
         );
 
         $statement->execute(['receta_id' => $id]);
-        $receta['categorias'] = $statement->fetchAll();
+        $categorias = array_map(Categoria::desdeFila(...), $statement->fetchAll());
 
         // Recupera las etiquetas asociadas.
         $statement = $this->pdo->prepare(
@@ -346,9 +376,9 @@ final class RecetaRepository
         );
 
         $statement->execute(['receta_id' => $id]);
-        $receta['etiquetas'] = $statement->fetchAll();
+        $etiquetas = array_map(Etiqueta::desdeFila(...), $statement->fetchAll());
 
-        return $receta;
+        return Receta::desdeFila($receta, $ingredientes, $pasos, $categorias, $etiquetas);
     }
 
     public function cambiarArchivado(int $id, bool $archivar): bool
@@ -374,7 +404,7 @@ final class RecetaRepository
         return $statement->rowCount() > 0;
     }
 
-    public function crear(array $datos): int
+    public function crear(RecetaDatos $datos): int
     {
         // Guarda una receta completa de forma atómica.
         try {
@@ -407,39 +437,24 @@ final class RecetaRepository
             );
 
             $statement->execute([
-                'titulo' => $datos['titulo'],
+                'titulo' => $datos->titulo,
                 'slug' => $this->resolverSlug($datos),
-                'descripcion' => $datos['descripcion'] ?? null,
-                'fuente_url' => $datos['fuente_url'] ?? null,
-                'fuente_nombre' => $datos['fuente_nombre'] ?? null,
-                'imagen_url' => $datos['imagen_url'] ?? null,
-                'raciones' => $datos['raciones'] ?? null,
-                'tiempo_preparacion_min' => $datos['tiempo_preparacion_min'] ?? null,
-                'tiempo_coccion_min' => $datos['tiempo_coccion_min'] ?? null,
-                'tiempo_total_min' => $datos['tiempo_total_min'] ?? null,
+                'descripcion' => $datos->descripcion,
+                'fuente_url' => $datos->fuenteUrl,
+                'fuente_nombre' => $datos->fuenteNombre,
+                'imagen_url' => $datos->imagenUrl,
+                'raciones' => $datos->raciones,
+                'tiempo_preparacion_min' => $datos->tiempoPreparacionMin,
+                'tiempo_coccion_min' => $datos->tiempoCoccionMin,
+                'tiempo_total_min' => $datos->tiempoTotalMin,
             ]);
 
             $recetaId = (int) $this->pdo->lastInsertId();
 
-            $this->guardarIngredientes(
-                $recetaId,
-                $datos['ingredientes'] ?? []
-            );
-
-            $this->guardarPasos(
-                $recetaId,
-                $datos['pasos'] ?? []
-            );
-
-            $this->guardarCategorias(
-                $recetaId,
-                $datos['categorias'] ?? []
-            );
-
-            $this->guardarEtiquetas(
-                $recetaId,
-                $datos['etiquetas'] ?? []
-            );
+            $this->guardarIngredientes($recetaId, $datos->ingredientes);
+            $this->guardarPasos($recetaId, $datos->pasos);
+            $this->guardarCategorias($recetaId, $datos->categorias);
+            $this->guardarEtiquetas($recetaId, $datos->etiquetas);
 
             $this->pdo->commit();
 
@@ -453,7 +468,7 @@ final class RecetaRepository
         }
     }
 
-    public function actualizar(int $id, array $datos): bool
+    public function actualizar(int $id, RecetaDatos $datos): bool
     {
         $statement = $this->pdo->prepare('SELECT 1 FROM recetas WHERE id = :id');
         $statement->execute(['id' => $id]);
@@ -482,16 +497,16 @@ final class RecetaRepository
             );
             $statement->execute([
                 'id' => $id,
-                'titulo' => trim((string) $datos['titulo']),
+                'titulo' => $datos->titulo,
                 'slug' => $this->resolverSlug($datos, $id),
-                'descripcion' => $datos['descripcion'] ?? null,
-                'fuente_url' => $datos['fuente_url'] ?? null,
-                'fuente_nombre' => $datos['fuente_nombre'] ?? null,
-                'imagen_url' => $datos['imagen_url'] ?? null,
-                'raciones' => $datos['raciones'] ?? null,
-                'tiempo_preparacion_min' => $datos['tiempo_preparacion_min'] ?? null,
-                'tiempo_coccion_min' => $datos['tiempo_coccion_min'] ?? null,
-                'tiempo_total_min' => $datos['tiempo_total_min'] ?? null,
+                'descripcion' => $datos->descripcion,
+                'fuente_url' => $datos->fuenteUrl,
+                'fuente_nombre' => $datos->fuenteNombre,
+                'imagen_url' => $datos->imagenUrl,
+                'raciones' => $datos->raciones,
+                'tiempo_preparacion_min' => $datos->tiempoPreparacionMin,
+                'tiempo_coccion_min' => $datos->tiempoCoccionMin,
+                'tiempo_total_min' => $datos->tiempoTotalMin,
             ]);
 
             foreach (['receta_ingredientes', 'receta_pasos', 'receta_categorias', 'receta_etiquetas'] as $tabla) {
@@ -499,10 +514,10 @@ final class RecetaRepository
                 $statement->execute(['id' => $id]);
             }
 
-            $this->guardarIngredientes($id, $datos['ingredientes']);
-            $this->guardarPasos($id, $datos['pasos']);
-            $this->guardarCategorias($id, $datos['categorias'] ?? []);
-            $this->guardarEtiquetas($id, $datos['etiquetas'] ?? []);
+            $this->guardarIngredientes($id, $datos->ingredientes);
+            $this->guardarPasos($id, $datos->pasos);
+            $this->guardarCategorias($id, $datos->categorias);
+            $this->guardarEtiquetas($id, $datos->etiquetas);
 
             $this->pdo->commit();
             return true;
@@ -514,6 +529,7 @@ final class RecetaRepository
         }
     }
 
+    /** @param list<IngredienteDatos> $ingredientes */
     private function guardarIngredientes(
         int $recetaId,
         array $ingredientes
@@ -574,6 +590,7 @@ final class RecetaRepository
         }
     }
 
+    /** @param list<PasoDatos> $pasos */
     private function guardarPasos(
         int $recetaId,
         array $pasos
@@ -603,18 +620,13 @@ final class RecetaRepository
         }
     }
 
+    /** @param list<string> $categorias */
     private function guardarCategorias(
         int $recetaId,
         array $categorias
     ): void {
         // Crea categorías inexistentes y las relaciona con la receta.
-        foreach ($categorias as $categoria) {
-            $nombre = trim((string) (is_array($categoria) ? ($categoria['nombre'] ?? '') : $categoria));
-
-            if ($nombre === '') {
-                continue;
-            }
-
+        foreach ($categorias as $nombre) {
             $slug = Slugger::generar($nombre);
 
             $statement = $this->pdo->prepare(
@@ -657,18 +669,13 @@ final class RecetaRepository
         }
     }
 
+    /** @param list<string> $etiquetas */
     private function guardarEtiquetas(
         int $recetaId,
         array $etiquetas
     ): void {
         // Crea etiquetas inexistentes y las relaciona con la receta.
-        foreach ($etiquetas as $etiqueta) {
-            $nombre = trim((string) (is_array($etiqueta) ? ($etiqueta['nombre'] ?? '') : $etiqueta));
-
-            if ($nombre === '') {
-                continue;
-            }
-
+        foreach ($etiquetas as $nombre) {
             $slug = Slugger::generar($nombre);
 
             $statement = $this->pdo->prepare(
@@ -716,10 +723,10 @@ final class RecetaRepository
      * usa el slug indicado explícitamente o lo deriva del título, y
      * garantiza que sea único añadiendo un sufijo numérico si hace falta.
      */
-    private function resolverSlug(array $datos, ?int $exceptoId = null): string
+    private function resolverSlug(RecetaDatos $datos, ?int $exceptoId = null): string
     {
-        $entrada = trim((string) ($datos['slug'] ?? ''));
-        $base = Slugger::generar($entrada !== '' ? $entrada : (string) $datos['titulo']);
+        $entrada = trim((string) ($datos->slug ?? ''));
+        $base = Slugger::generar($entrada !== '' ? $entrada : $datos->titulo);
 
         if ($base === '') {
             $base = 'receta';

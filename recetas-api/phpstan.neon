@@ -1,0 +1,12 @@
+parameters:
+    level: 6
+    # Fija el PHP objetivo al de producción/CI (Dockerfile, ci.yml), para que el
+    # análisis no cambie según la versión de PHP instalada en cada máquina local.
+    phpVersion: 80400
+    paths:
+        - src
+        - bootstrap
+        - routes
+        - tests
+    excludePaths:
+        - vendor

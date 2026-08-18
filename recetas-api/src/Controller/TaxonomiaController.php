@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
+use App\Model\TaxonomiaDatos;
 use App\Repository\TaxonomiaRepository;
 use App\Service\Slugger;
 use JsonException;
@@ -16,6 +17,7 @@ final class TaxonomiaController
     {
     }
 
+    /** @param array<string, string> $args */
     public function listar(ServerRequestInterface $request, ResponseInterface $response, array $args): ResponseInterface
     {
         $query = $request->getQueryParams();
@@ -27,38 +29,40 @@ final class TaxonomiaController
         return $this->json($response, $this->repository->listar($this->tipo($args), $pagina, $porPagina, $buscar, $orden, $direccion));
     }
 
+    /** @param array<string, string> $args */
     public function obtener(ServerRequestInterface $request, ResponseInterface $response, array $args): ResponseInterface
     {
         $registro = $this->repository->obtener($this->tipo($args), (int) ($args['id'] ?? 0));
         return $registro === null ? $this->json($response, ['error' => 'Término no encontrado'], 404) : $this->json($response, $registro);
     }
 
+    /** @param array<string, string> $args */
     public function crear(ServerRequestInterface $request, ResponseInterface $response, array $args): ResponseInterface
     {
         $datos = $this->datos($request);
         if ($datos instanceof ResponseInterface) return $datos;
-        [$nombre, $slug] = $datos;
         $tipo = $this->tipo($args);
-        if ($this->repository->existeDuplicado($tipo, $nombre, $slug)) {
+        if ($this->repository->existeDuplicado($tipo, $datos)) {
             return $this->json($response, ['error' => 'Ya existe un término con ese nombre o slug'], 409);
         }
-        return $this->json($response, $this->repository->crear($tipo, $nombre, $slug), 201);
+        return $this->json($response, $this->repository->crear($tipo, $datos), 201);
     }
 
+    /** @param array<string, string> $args */
     public function actualizar(ServerRequestInterface $request, ResponseInterface $response, array $args): ResponseInterface
     {
         $id = (int) ($args['id'] ?? 0);
         $datos = $this->datos($request);
         if ($datos instanceof ResponseInterface) return $datos;
-        [$nombre, $slug] = $datos;
         $tipo = $this->tipo($args);
         if ($this->repository->obtener($tipo, $id) === null) return $this->json($response, ['error' => 'Término no encontrado'], 404);
-        if ($this->repository->existeDuplicado($tipo, $nombre, $slug, $id)) {
+        if ($this->repository->existeDuplicado($tipo, $datos, $id)) {
             return $this->json($response, ['error' => 'Ya existe un término con ese nombre o slug'], 409);
         }
-        return $this->json($response, $this->repository->actualizar($tipo, $id, $nombre, $slug));
+        return $this->json($response, $this->repository->actualizar($tipo, $id, $datos));
     }
 
+    /** @param array<string, string> $args */
     public function eliminar(ServerRequestInterface $request, ResponseInterface $response, array $args): ResponseInterface
     {
         $resultado = $this->repository->eliminar($this->tipo($args), (int) ($args['id'] ?? 0));
@@ -67,7 +71,7 @@ final class TaxonomiaController
         return $response->withStatus(204);
     }
 
-    private function datos(ServerRequestInterface $request): array|ResponseInterface
+    private function datos(ServerRequestInterface $request): TaxonomiaDatos|ResponseInterface
     {
         try {
             $datos = json_decode((string) $request->getBody(), true, flags: JSON_THROW_ON_ERROR);
@@ -81,7 +85,7 @@ final class TaxonomiaController
         $slug = trim((string) ($datos['slug'] ?? ''));
         $slug = $slug === '' ? $this->slug($nombre) : $this->slug($slug);
         if ($slug === '') return $this->json(new \Slim\Psr7\Response(), ['error' => 'No se pudo generar un slug válido'], 422);
-        return [$nombre, $slug];
+        return new TaxonomiaDatos($nombre, $slug);
     }
 
     private function slug(string $texto): string
@@ -89,6 +93,7 @@ final class TaxonomiaController
         return Slugger::generar($texto);
     }
 
+    /** @param array<string, string> $args */
     private function tipo(array $args): string
     {
         return ($args['tipo'] ?? '') === 'categorias' ? 'categorias' : 'etiquetas';

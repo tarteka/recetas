@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 namespace App\Repository;
 
+use App\Model\TaxonomiaAdmin;
+use App\Model\TaxonomiaDatos;
 use PDO;
+use RuntimeException;
 
 final class TaxonomiaRepository
 {
@@ -12,6 +15,12 @@ final class TaxonomiaRepository
     {
     }
 
+    /**
+     * @return array{
+     *     datos: list<TaxonomiaAdmin>,
+     *     paginacion: array{pagina: int, por_pagina: int, total: int, total_paginas: int},
+     * }
+     */
     public function listar(string $tipo, int $pagina, int $porPagina, ?string $buscar, string $orden, string $direccion): array
     {
         [$tabla, $relacion, $clave] = $this->configuracion($tipo);
@@ -45,12 +54,12 @@ final class TaxonomiaRepository
         $statement->execute();
 
         return [
-            'datos' => $statement->fetchAll(),
+            'datos' => array_map(TaxonomiaAdmin::desdeFila(...), $statement->fetchAll()),
             'paginacion' => ['pagina' => $pagina, 'por_pagina' => $porPagina, 'total' => $total, 'total_paginas' => $totalPaginas],
         ];
     }
 
-    public function obtener(string $tipo, int $id): ?array
+    public function obtener(string $tipo, int $id): ?TaxonomiaAdmin
     {
         [$tabla, $relacion, $clave] = $this->configuracion($tipo);
         $statement = $this->pdo->prepare(
@@ -61,15 +70,15 @@ final class TaxonomiaRepository
         );
         $statement->execute(['id' => $id]);
         $resultado = $statement->fetch();
-        return $resultado === false ? null : $resultado;
+        return $resultado === false ? null : TaxonomiaAdmin::desdeFila($resultado);
     }
 
-    public function existeDuplicado(string $tipo, string $nombre, string $slug, ?int $exceptoId = null): bool
+    public function existeDuplicado(string $tipo, TaxonomiaDatos $datos, ?int $exceptoId = null): bool
     {
         [$tabla] = $this->configuracion($tipo);
         $sql = 'SELECT EXISTS(SELECT 1 FROM ' . $tabla . '
                 WHERE (nombre = :nombre COLLATE NOCASE OR slug = :slug COLLATE NOCASE)';
-        $parametros = ['nombre' => $nombre, 'slug' => $slug];
+        $parametros = ['nombre' => $datos->nombre, 'slug' => $datos->slug];
         if ($exceptoId !== null) {
             $sql .= ' AND id <> :id';
             $parametros['id'] = $exceptoId;
@@ -79,19 +88,26 @@ final class TaxonomiaRepository
         return (bool) $statement->fetchColumn();
     }
 
-    public function crear(string $tipo, string $nombre, string $slug): array
+    public function crear(string $tipo, TaxonomiaDatos $datos): TaxonomiaAdmin
     {
         [$tabla] = $this->configuracion($tipo);
         $statement = $this->pdo->prepare('INSERT INTO ' . $tabla . ' (nombre, slug) VALUES (:nombre, :slug)');
-        $statement->execute(['nombre' => $nombre, 'slug' => $slug]);
-        return $this->obtener($tipo, (int) $this->pdo->lastInsertId()) ?? [];
+        $statement->execute(['nombre' => $datos->nombre, 'slug' => $datos->slug]);
+
+        $creado = $this->obtener($tipo, (int) $this->pdo->lastInsertId());
+        if ($creado === null) {
+            // No debería ocurrir nunca: acabamos de insertar la fila.
+            throw new RuntimeException('No se pudo releer el término recién creado');
+        }
+
+        return $creado;
     }
 
-    public function actualizar(string $tipo, int $id, string $nombre, string $slug): ?array
+    public function actualizar(string $tipo, int $id, TaxonomiaDatos $datos): ?TaxonomiaAdmin
     {
         [$tabla] = $this->configuracion($tipo);
         $statement = $this->pdo->prepare('UPDATE ' . $tabla . ' SET nombre = :nombre, slug = :slug WHERE id = :id');
-        $statement->execute(['id' => $id, 'nombre' => $nombre, 'slug' => $slug]);
+        $statement->execute(['id' => $id, 'nombre' => $datos->nombre, 'slug' => $datos->slug]);
         return $this->obtener($tipo, $id);
     }
 
@@ -99,13 +115,14 @@ final class TaxonomiaRepository
     {
         $actual = $this->obtener($tipo, $id);
         if ($actual === null) return 'no_encontrada';
-        if ((int) $actual['total_recetas'] > 0) return 'en_uso';
+        if ($actual->totalRecetas > 0) return 'en_uso';
         [$tabla] = $this->configuracion($tipo);
         $statement = $this->pdo->prepare('DELETE FROM ' . $tabla . ' WHERE id = :id');
         $statement->execute(['id' => $id]);
         return 'eliminada';
     }
 
+    /** @return array{0: string, 1: string, 2: string} */
     private function configuracion(string $tipo): array
     {
         return $tipo === 'categorias'

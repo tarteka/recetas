@@ -34,9 +34,10 @@ git clone https://github.com/tarteka/recetas.git && cd recetas
 cp .env.example .env
 docker compose up -d
 
-# Web en http://localhost:5174
-# Admin en http://localhost:5175
+# Web en http://localhost:5173
+# Admin en http://localhost:5174
 # API en http://localhost:8080
+# Documentación de la API (Swagger UI) en http://localhost:8081
 ```
 
 Ver **[DEVELOPMENT.md](docs/DEVELOPMENT.md)** para detalles.
@@ -45,6 +46,7 @@ Ver **[DEVELOPMENT.md](docs/DEVELOPMENT.md)** para detalles.
 
 - **[DEVELOPMENT.md](docs/DEVELOPMENT.md)** — Setup local con Docker y Google OIDC
 - **[DEPLOYMENT.md](docs/DEPLOYMENT.md)** — Producción, backup y health checks
+- **[openapi.yaml](recetas-api/openapi.yaml)** — Spec OpenAPI 3.x de la API (bearer token para OpenClaw, sesión + CSRF para el panel admin). En desarrollo, navegable en http://localhost:8081 (Swagger UI, ver `docker compose up`)
 - **[ROLLBACK.md](docs/ROLLBACK.md)** — Rollback automático y manual
 
 ## Seguridad
@@ -106,6 +108,10 @@ sudo docker compose -f compose.prod.yaml start recetas-api
 ```
 
 Guardar backups fuera del VPS y verificar restauración regularmente.
+
+Para automatizarlo (rotación de backups diarios/semanales + subida a un
+destino externo vía rclone), ver `scripts/backup-sqlite.sh` y la sección
+"Backups Automáticos" de [DEPLOYMENT.md](docs/DEPLOYMENT.md).
 
 ## Licencia
 

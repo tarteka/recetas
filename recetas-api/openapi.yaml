@@ -1,0 +1,883 @@
+openapi: 3.0.3
+info:
+  title: Recetas API
+  description: >-
+    API REST del recetario personal. Sirve los datos que consumen
+    `recetas-web` (público) y `recetas-admin` (panel de administración), y
+    recibe recetas guardadas desde Telegram vía OpenClaw.
+  version: "1.0.0"
+  license:
+    name: Apache-2.0
+servers:
+  - url: https://recetas.proyectozero.org/api
+    description: Producción
+  - url: http://localhost:8080
+    description: Desarrollo local
+
+tags:
+  - name: Público
+    description: Endpoints de solo lectura, sin autenticación.
+  - name: OpenClaw
+    description: >-
+      Endpoints protegidos con token Bearer fijo (RECETAS_API_TOKEN), usados
+      por la integración de Telegram/OpenClaw para guardar recetas.
+  - name: Admin - Autenticación
+    description: Login/logout administrativo vía Google OIDC.
+  - name: Admin - Recetas
+    description: CRUD de recetas para el panel de administración.
+  - name: Admin - Taxonomía
+    description: CRUD de categorías y etiquetas para el panel de administración.
+
+paths:
+  /salud:
+    get:
+      tags: [Público]
+      summary: Comprueba que la API está operativa
+      security: []
+      responses:
+        "200":
+          description: La API está operativa
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  estado:
+                    type: string
+                    example: ok
+
+  /recetas:
+    get:
+      tags: [Público]
+      summary: Lista recetas públicas (activas), con búsqueda y filtros opcionales
+      security: []
+      parameters:
+        - name: pagina
+          in: query
+          schema: { type: integer, minimum: 1, default: 1 }
+        - name: por_pagina
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 48, default: 9 }
+        - name: buscar
+          in: query
+          schema: { type: string }
+        - name: categoria
+          in: query
+          description: Slug de categoría
+          schema: { type: string }
+        - name: etiqueta
+          in: query
+          description: Slug de etiqueta
+          schema: { type: string }
+      responses:
+        "200":
+          description: Página de recetas
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RespuestaRecetas"
+
+    post:
+      tags: [OpenClaw]
+      summary: Crea una receta
+      description: Endpoint usado por `guardar-receta.sh` (skill de OpenClaw).
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RecetaEntrada"
+      responses:
+        "201":
+          description: Receta creada
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id: { type: integer }
+                  slug: { type: string, nullable: true }
+        "400": { $ref: "#/components/responses/JsonInvalido" }
+        "401": { $ref: "#/components/responses/NoAutorizado" }
+        "422": { $ref: "#/components/responses/ErrorValidacion" }
+
+  /recetas/{identificador}:
+    get:
+      tags: [Público]
+      summary: Obtiene una receta pública por slug o id numérico
+      security: []
+      parameters:
+        - name: identificador
+          in: path
+          required: true
+          schema: { type: string }
+          description: Slug (recomendado) o id numérico heredado
+      responses:
+        "200":
+          description: Receta encontrada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Receta"
+        "400": { description: Identificador vacío o inválido }
+        "404": { description: Receta no encontrada }
+
+  /categorias:
+    get:
+      tags: [Público]
+      summary: Lista categorías con al menos una receta activa
+      security: []
+      responses:
+        "200":
+          description: Lista de categorías
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TaxonomiaResumen"
+
+  /etiquetas:
+    get:
+      tags: [Público]
+      summary: Lista etiquetas con al menos una receta activa
+      security: []
+      responses:
+        "200":
+          description: Lista de etiquetas
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TaxonomiaResumen"
+
+  /recetas/{id}/imagen:
+    post:
+      tags: [OpenClaw]
+      summary: Sube y normaliza la imagen de una receta
+      description: >-
+        Recorta a 3:2, normaliza a 1200x800 WebP y actualiza `imagen_url`.
+        Usado por `guardar-imagen.sh`/`generar-imagen.sh` (skill de OpenClaw).
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer, minimum: 1 }
+      requestBody:
+        required: true
+        description: Cuerpo binario de la imagen (el content-type indica el formato)
+        content:
+          image/*:
+            schema: { type: string, format: binary }
+      responses:
+        "200":
+          description: Imagen normalizada y asociada a la receta
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  imagen_url: { type: string }
+        "400": { description: Identificador inválido }
+        "401": { $ref: "#/components/responses/NoAutorizado" }
+        "404": { description: Receta no encontrada }
+        "422": { description: El contenido recibido no es una imagen válida }
+
+  /imagenes/{nombre}:
+    get:
+      tags: [Público]
+      summary: Sirve una imagen de receta ya normalizada (WebP)
+      security: []
+      parameters:
+        - name: nombre
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: "^[a-f0-9]{32}\\.webp$"
+      responses:
+        "200":
+          description: Imagen WebP
+          content:
+            image/webp:
+              schema: { type: string, format: binary }
+        "404": { description: Imagen no encontrada }
+
+  /admin/auth/google:
+    get:
+      tags: [Admin - Autenticación]
+      summary: Inicia el login administrativo (Authorization Code Flow de Google OIDC)
+      security: []
+      responses:
+        "302": { description: Redirige a Google para autenticar }
+        "503": { description: Autenticación administrativa no configurada }
+
+  /admin/auth/google/callback:
+    get:
+      tags: [Admin - Autenticación]
+      summary: Callback de Google OIDC tras el login
+      security: []
+      parameters:
+        - name: state
+          in: query
+          schema: { type: string }
+        - name: code
+          in: query
+          schema: { type: string }
+      responses:
+        "302":
+          description: >-
+            Redirige a /admin/ (éxito) o a /admin/login?error=... (state
+            inválido, autenticación fallida o cuenta fuera de la allowlist)
+
+  /admin/me:
+    get:
+      tags: [Admin - Autenticación]
+      summary: Devuelve la identidad de la sesión administrativa actual
+      security:
+        - sessionCookie: []
+      responses:
+        "200":
+          description: Identidad autenticada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IdentidadAdmin"
+        "401": { $ref: "#/components/responses/NoAutorizado" }
+
+  /admin/logout:
+    post:
+      tags: [Admin - Autenticación]
+      summary: Cierra la sesión administrativa
+      security:
+        - sessionCookie: []
+      responses:
+        "204": { description: Sesión cerrada }
+        "401": { $ref: "#/components/responses/NoAutorizado" }
+        "403": { $ref: "#/components/responses/CsrfRechazado" }
+
+  /admin/recetas:
+    get:
+      tags: [Admin - Recetas]
+      summary: Lista recetas (activas, archivadas o todas) para el panel admin
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: pagina
+          in: query
+          schema: { type: integer, minimum: 1, default: 1 }
+        - name: por_pagina
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 48, default: 10 }
+        - name: buscar
+          in: query
+          schema: { type: string }
+        - name: categoria
+          in: query
+          schema: { type: string }
+        - name: etiqueta
+          in: query
+          schema: { type: string }
+        - name: estado
+          in: query
+          schema:
+            type: string
+            enum: [activas, archivadas, todas]
+            default: activas
+        - name: ordenar
+          in: query
+          schema:
+            type: string
+            enum: [id, titulo, creado_en]
+            default: creado_en
+        - name: direccion
+          in: query
+          schema: { type: string, enum: [ASC, DESC], default: DESC }
+      responses:
+        "200":
+          description: Página de recetas
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RespuestaRecetas"
+        "401": { $ref: "#/components/responses/NoAutorizado" }
+
+    post:
+      tags: [Admin - Recetas]
+      summary: Crea una receta desde el panel admin
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RecetaEntrada"
+      responses:
+        "201":
+          description: Receta creada
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id: { type: integer }
+                  slug: { type: string, nullable: true }
+        "401": { $ref: "#/components/responses/NoAutorizado" }
+        "403": { $ref: "#/components/responses/CsrfRechazado" }
+        "422": { $ref: "#/components/responses/ErrorValidacion" }
+
+  /admin/recetas/{id}:
+    get:
+      tags: [Admin - Recetas]
+      summary: Obtiene una receta por id (incluye archivadas)
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: "#/components/parameters/RecetaId"
+      responses:
+        "200":
+          description: Receta encontrada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Receta"
+        "400": { description: Identificador inválido }
+        "401": { $ref: "#/components/responses/NoAutorizado" }
+        "404": { description: Receta no encontrada }
+
+    put:
+      tags: [Admin - Recetas]
+      summary: Actualiza una receta completa
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: "#/components/parameters/RecetaId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RecetaEntrada"
+      responses:
+        "200":
+          description: Receta actualizada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Receta"
+        "400": { description: Identificador o JSON inválido }
+        "401": { $ref: "#/components/responses/NoAutorizado" }
+        "403": { $ref: "#/components/responses/CsrfRechazado" }
+        "404": { description: Receta no encontrada }
+        "422": { $ref: "#/components/responses/ErrorValidacion" }
+
+    delete:
+      tags: [Admin - Recetas]
+      summary: Archiva una receta (no la borra)
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: "#/components/parameters/RecetaId"
+      responses:
+        "200":
+          description: Receta archivada
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id: { type: integer }
+                  archivada_en: { type: string, format: date-time }
+        "400": { description: Identificador inválido }
+        "401": { $ref: "#/components/responses/NoAutorizado" }
+        "403": { $ref: "#/components/responses/CsrfRechazado" }
+        "404": { description: Receta no encontrada }
+
+  /admin/recetas/{id}/restaurar:
+    post:
+      tags: [Admin - Recetas]
+      summary: Restaura una receta archivada
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: "#/components/parameters/RecetaId"
+      responses:
+        "200":
+          description: Receta restaurada
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id: { type: integer }
+                  archivada_en: { type: string, nullable: true }
+        "401": { $ref: "#/components/responses/NoAutorizado" }
+        "403": { $ref: "#/components/responses/CsrfRechazado" }
+        "404": { description: Receta no encontrada }
+
+  /admin/recetas/{id}/definitiva:
+    delete:
+      tags: [Admin - Recetas]
+      summary: Elimina definitivamente una receta ya archivada
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: "#/components/parameters/RecetaId"
+      responses:
+        "200":
+          description: Receta eliminada definitivamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  eliminada: { type: boolean }
+                  id: { type: integer }
+        "401": { $ref: "#/components/responses/NoAutorizado" }
+        "403": { $ref: "#/components/responses/CsrfRechazado" }
+        "404": { description: Receta no encontrada }
+        "409": { description: La receta debe archivarse antes de eliminarla definitivamente }
+
+  /admin/recetas/{id}/imagen:
+    post:
+      tags: [Admin - Recetas]
+      summary: Sube y normaliza la imagen de una receta desde el panel admin
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: "#/components/parameters/RecetaId"
+      requestBody:
+        required: true
+        content:
+          image/*:
+            schema: { type: string, format: binary }
+      responses:
+        "200":
+          description: Imagen normalizada y asociada a la receta
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  imagen_url: { type: string }
+        "400": { description: Identificador inválido }
+        "401": { $ref: "#/components/responses/NoAutorizado" }
+        "403": { $ref: "#/components/responses/CsrfRechazado" }
+        "404": { description: Receta no encontrada }
+        "422": { description: El contenido recibido no es una imagen válida }
+
+    delete:
+      tags: [Admin - Recetas]
+      summary: Elimina la imagen de una receta
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: "#/components/parameters/RecetaId"
+      responses:
+        "200":
+          description: Imagen eliminada
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  imagen_url: { type: string, nullable: true }
+        "400": { description: Identificador inválido }
+        "401": { $ref: "#/components/responses/NoAutorizado" }
+        "403": { $ref: "#/components/responses/CsrfRechazado" }
+        "404": { description: Receta no encontrada }
+        "409": { description: No se pudo actualizar la receta }
+
+  /admin/{tipo}:
+    parameters:
+      - $ref: "#/components/parameters/TipoTaxonomia"
+    get:
+      tags: [Admin - Taxonomía]
+      summary: Lista categorías o etiquetas (recurso admin, con id)
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: pagina
+          in: query
+          schema: { type: integer, minimum: 1, default: 1 }
+        - name: por_pagina
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 50, default: 15 }
+        - name: buscar
+          in: query
+          schema: { type: string }
+        - name: ordenar
+          in: query
+          schema:
+            type: string
+            enum: [id, nombre, total_recetas]
+            default: nombre
+        - name: direccion
+          in: query
+          schema: { type: string, enum: [ASC, DESC], default: ASC }
+      responses:
+        "200":
+          description: Página de categorías/etiquetas
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RespuestaTaxonomia"
+        "401": { $ref: "#/components/responses/NoAutorizado" }
+
+    post:
+      tags: [Admin - Taxonomía]
+      summary: Crea una categoría o etiqueta
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TerminoEntrada"
+      responses:
+        "201":
+          description: Creada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TerminoAdmin"
+        "401": { $ref: "#/components/responses/NoAutorizado" }
+        "403": { $ref: "#/components/responses/CsrfRechazado" }
+        "409": { description: Ya existe un término con ese nombre o slug }
+        "422": { description: "Nombre obligatorio (máx. 80 caracteres) o slug inválido" }
+
+  /admin/{tipo}/{id}:
+    parameters:
+      - $ref: "#/components/parameters/TipoTaxonomia"
+      - name: id
+        in: path
+        required: true
+        schema: { type: integer, minimum: 1 }
+    get:
+      tags: [Admin - Taxonomía]
+      summary: Obtiene una categoría o etiqueta por id
+      security:
+        - sessionCookie: []
+      responses:
+        "200":
+          description: Encontrada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TerminoAdmin"
+        "401": { $ref: "#/components/responses/NoAutorizado" }
+        "404": { description: Término no encontrado }
+
+    put:
+      tags: [Admin - Taxonomía]
+      summary: Actualiza una categoría o etiqueta
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TerminoEntrada"
+      responses:
+        "200":
+          description: Actualizada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TerminoAdmin"
+        "401": { $ref: "#/components/responses/NoAutorizado" }
+        "403": { $ref: "#/components/responses/CsrfRechazado" }
+        "404": { description: Término no encontrado }
+        "409": { description: Ya existe un término con ese nombre o slug }
+        "422": { description: "Nombre obligatorio (máx. 80 caracteres) o slug inválido" }
+
+    delete:
+      tags: [Admin - Taxonomía]
+      summary: Elimina una categoría o etiqueta (solo si no está en uso)
+      security:
+        - sessionCookie: []
+      responses:
+        "204": { description: Eliminada }
+        "401": { $ref: "#/components/responses/NoAutorizado" }
+        "404": { description: Término no encontrado }
+        "409": { description: No se puede eliminar porque está asociado a una o más recetas }
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: >-
+        Token fijo configurado en RECETAS_API_TOKEN. Usado por integraciones
+        externas (OpenClaw) para crear recetas y subir imágenes sin sesión de
+        administrador.
+    sessionCookie:
+      type: apiKey
+      in: cookie
+      name: recetas_admin_session
+      description: >-
+        Cookie de sesión administrativa (HttpOnly, SameSite=Lax, Secure en
+        producción) obtenida tras completar el login con Google OIDC en
+        /admin/auth/google. Las peticiones que modifican datos (POST/PUT/
+        DELETE) además exigen que la cabecera Origin coincida con
+        ADMIN_ALLOWED_ORIGINS (protección CSRF).
+
+  parameters:
+    RecetaId:
+      name: id
+      in: path
+      required: true
+      schema: { type: integer, minimum: 1 }
+    TipoTaxonomia:
+      name: tipo
+      in: path
+      required: true
+      schema: { type: string, enum: [categorias, etiquetas] }
+
+  responses:
+    NoAutorizado:
+      description: Falta autenticación o no es válida
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    CsrfRechazado:
+      description: Origen no permitido (protección CSRF)
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    JsonInvalido:
+      description: El cuerpo de la petición no es JSON válido
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    ErrorValidacion:
+      description: Los datos enviados no pasan la validación
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorValidacionRespuesta"
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        error: { type: string }
+
+    ErrorValidacionRespuesta:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Primer error de validación
+        errores:
+          type: array
+          items: { type: string }
+
+    Paginacion:
+      type: object
+      properties:
+        pagina: { type: integer }
+        por_pagina: { type: integer }
+        total: { type: integer }
+        total_paginas: { type: integer }
+
+    ClasificacionReceta:
+      type: object
+      description: Categoría o etiqueta embebida dentro de una receta
+      properties:
+        nombre: { type: string }
+        slug: { type: string }
+
+    TaxonomiaResumen:
+      type: object
+      description: Categoría o etiqueta con recuento, sin id (navegación pública)
+      properties:
+        nombre: { type: string }
+        slug: { type: string }
+        total_recetas: { type: integer }
+
+    TerminoAdmin:
+      type: object
+      description: Categoría o etiqueta como recurso administrable (con id)
+      properties:
+        id: { type: integer }
+        nombre: { type: string }
+        slug: { type: string }
+        total_recetas: { type: integer }
+
+    TerminoEntrada:
+      type: object
+      required: [nombre]
+      properties:
+        nombre: { type: string, maxLength: 80 }
+        slug:
+          type: string
+          description: Opcional; si se omite se deriva de "nombre"
+
+    Ingrediente:
+      type: object
+      properties:
+        nombre: { type: string }
+        cantidad: { type: number, nullable: true }
+        unidad: { type: string, nullable: true }
+        notas: { type: string, nullable: true }
+        texto_original: { type: string }
+        posicion: { type: integer }
+
+    Paso:
+      type: object
+      properties:
+        numero: { type: integer }
+        instruccion: { type: string }
+        imagen_url: { type: string, nullable: true }
+
+    RecetaResumen:
+      type: object
+      description: Fila de listado (pública o admin) — sin ingredientes ni pasos
+      properties:
+        id: { type: integer }
+        titulo: { type: string }
+        slug: { type: string, nullable: true }
+        descripcion: { type: string, nullable: true }
+        imagen_url: { type: string, nullable: true }
+        fuente_nombre: { type: string, nullable: true }
+        raciones: { type: integer, nullable: true }
+        tiempo_total_min: { type: integer, nullable: true }
+        creado_en: { type: string, format: date-time }
+        archivada_en: { type: string, format: date-time, nullable: true }
+        categorias:
+          type: array
+          items: { $ref: "#/components/schemas/ClasificacionReceta" }
+        etiquetas:
+          type: array
+          items: { $ref: "#/components/schemas/ClasificacionReceta" }
+
+    Receta:
+      type: object
+      description: Detalle completo (público o admin)
+      properties:
+        id: { type: integer }
+        titulo: { type: string }
+        slug: { type: string, nullable: true }
+        descripcion: { type: string, nullable: true }
+        fuente_url: { type: string, nullable: true }
+        fuente_nombre: { type: string, nullable: true }
+        imagen_url: { type: string, nullable: true }
+        raciones: { type: integer, nullable: true }
+        tiempo_preparacion_min: { type: integer, nullable: true }
+        tiempo_coccion_min: { type: integer, nullable: true }
+        tiempo_total_min: { type: integer, nullable: true }
+        creado_en: { type: string, format: date-time }
+        actualizado_en: { type: string, format: date-time, nullable: true }
+        archivada_en: { type: string, format: date-time, nullable: true }
+        ingredientes:
+          type: array
+          items: { $ref: "#/components/schemas/Ingrediente" }
+        pasos:
+          type: array
+          items: { $ref: "#/components/schemas/Paso" }
+        categorias:
+          type: array
+          items: { $ref: "#/components/schemas/ClasificacionReceta" }
+        etiquetas:
+          type: array
+          items: { $ref: "#/components/schemas/ClasificacionReceta" }
+
+    RespuestaRecetas:
+      type: object
+      properties:
+        datos:
+          type: array
+          items: { $ref: "#/components/schemas/RecetaResumen" }
+        paginacion: { $ref: "#/components/schemas/Paginacion" }
+
+    RespuestaTaxonomia:
+      type: object
+      properties:
+        datos:
+          type: array
+          items: { $ref: "#/components/schemas/TerminoAdmin" }
+        paginacion: { $ref: "#/components/schemas/Paginacion" }
+
+    IngredienteEntrada:
+      type: object
+      required: [nombre, texto_original]
+      properties:
+        nombre: { type: string }
+        cantidad: { type: number, nullable: true }
+        unidad: { type: string, nullable: true }
+        notas: { type: string, nullable: true }
+        texto_original: { type: string }
+
+    PasoEntrada:
+      type: object
+      required: [instruccion]
+      properties:
+        numero: { type: integer }
+        instruccion: { type: string }
+        imagen_url: { type: string, nullable: true }
+
+    TerminoEntradaEmbebido:
+      description: >-
+        Categoría o etiqueta dentro de una receta: texto plano (formato que
+        usa OpenClaw) u objeto con "nombre" (formato que envía el panel admin)
+      oneOf:
+        - type: string
+        - type: object
+          properties:
+            nombre: { type: string }
+
+    RecetaEntrada:
+      type: object
+      required: [titulo, ingredientes, pasos]
+      properties:
+        titulo: { type: string }
+        slug:
+          type: string
+          description: Opcional; si se omite se deriva de "titulo"
+        descripcion: { type: string, nullable: true }
+        fuente_url: { type: string, nullable: true }
+        fuente_nombre: { type: string, nullable: true }
+        imagen_url:
+          type: string
+          nullable: true
+          description: >-
+            Debe ser null al crear desde OpenClaw; no acepta URLs externas,
+            solo rutas ya gestionadas (/imagenes/{32 hex}.webp).
+        raciones: { type: integer, minimum: 1, nullable: true }
+        tiempo_preparacion_min: { type: integer, minimum: 0, nullable: true }
+        tiempo_coccion_min: { type: integer, minimum: 0, nullable: true }
+        tiempo_total_min: { type: integer, minimum: 0, nullable: true }
+        ingredientes:
+          type: array
+          minItems: 1
+          items: { $ref: "#/components/schemas/IngredienteEntrada" }
+        pasos:
+          type: array
+          minItems: 1
+          items: { $ref: "#/components/schemas/PasoEntrada" }
+        categorias:
+          type: array
+          items: { $ref: "#/components/schemas/TerminoEntradaEmbebido" }
+        etiquetas:
+          type: array
+          items: { $ref: "#/components/schemas/TerminoEntradaEmbebido" }
+
+    IdentidadAdmin:
+      type: object
+      properties:
+        id: { type: string, description: "Subject de Google (sub)" }
+        email: { type: string }
+        nombre: { type: string, nullable: true }
+        avatar_url: { type: string, nullable: true }

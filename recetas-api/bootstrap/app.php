@@ -23,6 +23,7 @@ use Slim\Factory\AppFactory;
 
 require __DIR__ . '/../vendor/autoload.php';
 
+/** @var App<\Psr\Container\ContainerInterface|null> $app */
 $app = AppFactory::create();
 $app->addRoutingMiddleware();
 $app->addErrorMiddleware(false, true, true);
@@ -51,7 +52,7 @@ $adminCsrfMiddleware = new AdminCsrfMiddleware($adminConfig);
 
 /**
  * @var callable(
- *     App,
+ *     App<\Psr\Container\ContainerInterface|null>,
  *     RecetaController,
  *     TaxonomiaController,
  *     ImagenController,
@@ -63,6 +64,9 @@ $adminCsrfMiddleware = new AdminCsrfMiddleware($adminConfig);
  */
 $registrarRutas = require __DIR__ . '/../routes/api.php';
 $registrarRutas(
+    // Slim\App<TContainerInterface> es invariante: PHPStan no unifica dos instancias
+    // de App<ContainerInterface|null> aunque sean el mismo tipo.
+    // @phpstan-ignore argument.type
     $app,
     $recetaController,
     $taxonomiaController,
