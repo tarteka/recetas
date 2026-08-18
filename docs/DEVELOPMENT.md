@@ -91,6 +91,7 @@ curl http://localhost:5174
 | **Web pública** | http://localhost:5173 | Listado de recetas |
 | **Admin** | http://localhost:5174 | Panel administrativo |
 | **API** | http://localhost:8080 | REST API |
+| **Documentación API** | http://localhost:8081 | Swagger UI sobre `recetas-api/openapi.yaml` (solo desarrollo) |
 
 ---
 
