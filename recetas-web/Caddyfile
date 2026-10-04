@@ -56,3 +56,24 @@
 		format console
 	}
 }
+
+webmail.proyectozero.org {
+	# Roundcube solo es accesible mediante la red Docker compartida.
+	reverse_proxy roundcube:80
+
+	header {
+			-Server
+			-X-Powered-By
+			Strict-Transport-Security "max-age=31536000"
+			X-Content-Type-Options nosniff
+			X-Frame-Options SAMEORIGIN
+			Referrer-Policy strict-origin-when-cross-origin
+	}
+
+	encode zstd gzip
+
+	log {
+			output stdout
+			format console
+	}
+}

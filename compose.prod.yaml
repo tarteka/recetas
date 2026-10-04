@@ -39,7 +39,10 @@ services:
       - caddy_data:/data
       - caddy_config:/config
     networks:
+      # Red interna de Recetas
       - recetas-interna
+      # Red compartida para servicios publicados por Caddy
+      - proxy-publico
     depends_on:
       recetas-api:
         condition: service_healthy
@@ -69,6 +72,8 @@ services:
 networks:
   recetas-interna:
     driver: bridge
+  proxy-publico:      
+    external: true
 
 volumes:
   caddy_data:
