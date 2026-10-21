@@ -3,10 +3,20 @@ name: Rollback - Manual
 on:
   workflow_dispatch:
     inputs:
-      commit_sha:
-        description: 'Commit SHA para hacer rollback'
+      service:
+        description: Servicio a recuperar
+        required: true
+        default: recetas-api
+        type: choice
+        options: [recetas-api, recetas-web, recetas-admin, all]
+      image_tag:
+        description: Tag inmutable publicado (SHA-run_id)
         required: true
         type: string
+
+concurrency:
+  group: recetas-production
+  cancel-in-progress: false
 
 jobs:
   rollback:
@@ -16,75 +26,33 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - name: Validar SHA
+      - name: Validar entrada
         run: |
-          if [ ${#COMMIT_SHA} -ne 40 ]; then
-            echo "❌ Commit SHA inválido: ${{ inputs.commit_sha }}"
+          if ! [[ "$IMAGE_TAG" =~ ^[0-9a-f]{40}-[0-9]+$ ]]; then
+            echo "❌ Tag inmutable inválido"
             exit 1
           fi
-          echo "✅ SHA válido: ${{ inputs.commit_sha }}"
+          echo "✅ Tag válido para $SERVICE"
         env:
-          COMMIT_SHA: ${{ inputs.commit_sha }}
+          IMAGE_TAG: ${{ inputs.image_tag }}
+          SERVICE: ${{ inputs.service }}
 
       - name: Ejecutar rollback en VPS
         uses: appleboy/ssh-action@v1.2.5
+        env:
+          SERVICE: ${{ inputs.service }}
+          IMAGE_TAG: ${{ inputs.image_tag }}
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
           port: 22
+          envs: SERVICE,IMAGE_TAG
           script: |
-            set -e
-
+            set -eu
             cd /opt/recetas
-
-            ROLLBACK_SHA=${{ inputs.commit_sha }}
-
-            echo "⏮️  Iniciando rollback..."
-            echo "Versión anterior: $ROLLBACK_SHA"
-            echo ""
-
-            # 1. Sincronizar compose.prod.yaml y demás config con el SHA de rollback
-            echo "🔄 Sincronizando configuración..."
-            git fetch --quiet origin
-            git checkout --quiet "$ROLLBACK_SHA" || {
-              echo "❌ Error: no se pudo sincronizar el checkout a $ROLLBACK_SHA"
-              exit 1
-            }
-
-            # 2. Descargar imágenes de versión anterior
-            echo "📥 Descargando imágenes de GHCR..."
-            export RELEASE_TAG=$ROLLBACK_SHA
-            docker compose -f compose.prod.yaml pull || {
-              echo "❌ Error: No se pueden descargar imágenes del SHA $ROLLBACK_SHA"
-              echo "Verifica que existan en GHCR"
-              exit 1
-            }
-
-            # 3. Recrear solo los contenedores cuya imagen cambió (sin downtime completo)
-            echo "🆙 Actualizando servicios..."
-            docker compose -f compose.prod.yaml up -d || {
-              echo "❌ Error al iniciar servicios"
-              exit 1
-            }
-
-            # 4. Esperar inicialización
-            echo "⏳ Esperando servicios..."
-            sleep 15
-
-            # 5. Health check
-            echo "🏥 Verificando salud..."
-            if curl -f http://127.0.0.1:8080/salud > /dev/null 2>&1; then
-              echo "✅ API respondiendo correctamente"
-            else
-              echo "❌ API no responde"
-              docker compose -f compose.prod.yaml logs recetas-api | tail -20
-              exit 1
-            fi
-
-            echo ""
-            echo "✅ Rollback completado"
-            echo "Versión activa: $ROLLBACK_SHA"
+            chmod +x scripts/apply-release.sh
+            ./scripts/apply-release.sh "$SERVICE" "$IMAGE_TAG"
 
       - name: Falló el rollback ❌
         if: failure()
