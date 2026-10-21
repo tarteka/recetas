@@ -30,6 +30,7 @@ jobs:
       source_sha: ${{ steps.release.outputs.source_sha }}
       release_id: ${{ steps.release.outputs.release_id }}
       service: ${{ steps.release.outputs.service }}
+      matrix: ${{ steps.release.outputs.matrix }}
     steps:
       - id: release
         env:
@@ -40,6 +41,14 @@ jobs:
           echo "source_sha=$source_sha" >> "$GITHUB_OUTPUT"
           echo "release_id=${source_sha}-${GITHUB_RUN_ID}" >> "$GITHUB_OUTPUT"
           echo "service=${DISPATCH_SERVICE:-all}" >> "$GITHUB_OUTPUT"
+          case "${DISPATCH_SERVICE:-all}" in
+            recetas-api) matrix='{"include":[{"name":"recetas-api","context":"./recetas-api","dockerfile":"./recetas-api/Dockerfile.prod"}]}' ;;
+            recetas-web) matrix='{"include":[{"name":"recetas-web","context":"./recetas-web","dockerfile":"./recetas-web/Dockerfile.prod"}]}' ;;
+            recetas-admin) matrix='{"include":[{"name":"recetas-admin","context":"./recetas-admin","dockerfile":"./recetas-admin/Dockerfile.prod"}]}' ;;
+            all) matrix='{"include":[{"name":"recetas-api","context":"./recetas-api","dockerfile":"./recetas-api/Dockerfile.prod"},{"name":"recetas-web","context":"./recetas-web","dockerfile":"./recetas-web/Dockerfile.prod"},{"name":"recetas-admin","context":"./recetas-admin","dockerfile":"./recetas-admin/Dockerfile.prod"}]}' ;;
+            *) echo "Servicio no válido" >&2; exit 1 ;;
+          esac
+          echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
 
   build-publish:
     name: Build y publicar en GHCR
@@ -52,18 +61,7 @@ jobs:
       id-token: write
 
     strategy:
-      matrix:
-        include:
-          - name: recetas-api
-            context: ./recetas-api
-            dockerfile: ./recetas-api/Dockerfile.prod
-          - name: recetas-web
-            context: ./recetas-web
-            dockerfile: ./recetas-web/Dockerfile.prod
-          - name: recetas-admin
-            context: ./recetas-admin
-            dockerfile: ./recetas-admin/Dockerfile.prod
-    if: needs.prepare.outputs.service == 'all' || needs.prepare.outputs.service == matrix.name
+      matrix: ${{ fromJSON(needs.prepare.outputs.matrix) }}
 
     steps:
       - uses: actions/checkout@v7

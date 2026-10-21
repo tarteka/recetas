@@ -49,74 +49,10 @@ jobs:
           port: 22
           envs: SERVICE,IMAGE_TAG
           script: |
-            set -e
-
+            set -eu
             cd /opt/recetas
-
-            echo "⏮️  Iniciando rollback..."
-            echo "Versión anterior: $IMAGE_TAG ($SERVICE)"
-            echo ""
-
-            # The compose file is already present; rollback never rebuilds or changes data.
-            echo "📥 Descargando imágenes de GHCR..."
-            TARGETS="$SERVICE"
-            [ "$SERVICE" = all ] && TARGETS="recetas-api recetas-web recetas-admin"
-            case "$SERVICE" in
-              recetas-api) export RECETAS_API_TAG="$IMAGE_TAG" ;;
-              recetas-web) export RECETAS_WEB_TAG="$IMAGE_TAG" ;;
-              recetas-admin) export RECETAS_ADMIN_TAG="$IMAGE_TAG" ;;
-              all)
-                export RECETAS_API_TAG="$IMAGE_TAG"
-                export RECETAS_WEB_TAG="$IMAGE_TAG"
-                export RECETAS_ADMIN_TAG="$IMAGE_TAG"
-                ;;
-            esac
-            docker compose -f compose.prod.yaml pull $TARGETS || {
-              echo "❌ Error: no se puede descargar la imagen solicitada"
-              echo "Verifica que existan en GHCR"
-              exit 1
-            }
-
-            # --no-deps keeps unrelated services, Caddy and persistent volumes running.
-            echo "🆙 Actualizando servicios..."
-            docker compose -f compose.prod.yaml up -d --no-deps $TARGETS || {
-              echo "❌ Error al iniciar servicios"
-              exit 1
-            }
-
-            # 4. Esperar inicialización
-            echo "⏳ Esperando servicios..."
-            sleep 15
-
-            # 5. Health check
-            echo "🏥 Verificando salud..."
-            if curl -f http://127.0.0.1:8080/salud > /dev/null 2>&1; then
-              echo "✅ API respondiendo correctamente"
-            else
-              echo "❌ API no responde"
-              docker compose -f compose.prod.yaml logs recetas-api | tail -20
-              exit 1
-            fi
-
-            for target in $TARGETS; do
-              container="$(docker compose -f compose.prod.yaml ps -q "$target")"
-              health="$(docker inspect --format '{{.State.Health.Status}}' "$container" 2>/dev/null || true)"
-              if [ -z "$container" ] || [ "$health" != healthy ]; then
-                echo "❌ El contenedor $target no está saludable"
-                exit 1
-              fi
-            done
-
-            for variable in RECETAS_API_TAG RECETAS_WEB_TAG RECETAS_ADMIN_TAG; do
-              value="$(printenv "$variable" || true)"
-              [ -n "$value" ] || continue
-              sed -i "/^${variable}=/d" .env
-              printf '%s=%s\n' "$variable" "$value" >> .env
-            done
-
-            echo ""
-            echo "✅ Rollback completado"
-            echo "Versión activa: $IMAGE_TAG ($SERVICE)"
+            chmod +x scripts/apply-release.sh
+            ./scripts/apply-release.sh "$SERVICE" "$IMAGE_TAG"
 
       - name: Falló el rollback ❌
         if: failure()
