@@ -425,3 +425,59 @@ git add .env  # ← NO HAGAS ESTO
 ---
 
 ## Para Rollback ver ROLLBACK.md
+
+---
+
+## Releases independientes (migración desde `RELEASE_TAG`)
+
+Las nuevas publicaciones usan un tag inmutable `<sha-completo>-<run-id>`. No se
+sobrescribe un tag al reconstruir el mismo commit. Cada servicio puede apuntar a
+una imagen distinta mediante estas variables en `/opt/recetas/.env`:
+
+```env
+RECETAS_API_TAG=<sha>-<run-id>
+RECETAS_WEB_TAG=<sha>-<run-id>
+RECETAS_ADMIN_TAG=<sha>-<run-id>
+```
+
+`RELEASE_TAG` se mantiene como alternativa temporal: si falta un tag específico,
+Compose lo usa para ese servicio. Tras el primer despliegue nuevo, el workflow
+guarda los tags específicos en `.env`; se puede retirar `RELEASE_TAG` cuando los
+tres estén definidos.
+
+### Flujo automático y reconstrucción de seguridad
+
+Un `push` a `main` ejecuta CI y solo una CI correcta inicia la publicación y el
+despliegue. En **Actions → Build & Publish - GHCR → Run workflow**, selecciona
+`recetas-api` para forzar una reconstrucción de la API aunque no haya cambios de
+código. Buildx usa `pull: true`, por lo que consulta `php:8.4-apache` actualizado,
+mantiene caché de capas útiles y publica AMD64, ARM64, SBOM y provenance. Antes de
+desplegar, prueba el PHP de la imagen final en ambas arquitecturas y exige al menos
+PHP 8.4.27.
+
+El despliegue que se derive de esa ejecución descarga y recrea solo `recetas-api`.
+No reinicia Caddy, Web ni Admin. Para ver qué se ejecuta:
+
+```bash
+cd /opt/recetas
+grep '^RECETAS_.*_TAG=' .env
+docker compose -f compose.prod.yaml ps
+docker compose -f compose.prod.yaml images
+curl -f http://127.0.0.1:8080/salud
+```
+
+### Actualización selectiva manual en VPS
+
+Usa siempre un tag mostrado por el run de GitHub Actions, no `latest` ni un SHA
+sin el `run-id`:
+
+```bash
+cd /opt/recetas
+export RECETAS_API_TAG=<sha>-<run-id>
+docker compose -f compose.prod.yaml pull recetas-api
+docker compose -f compose.prod.yaml up -d --no-deps recetas-api
+curl -f http://127.0.0.1:8080/salud
+```
+
+No uses `docker compose down` ni `down -v` para actualizaciones ordinarias: los
+datos de SQLite e imágenes están en `./datos` y deben conservarse.

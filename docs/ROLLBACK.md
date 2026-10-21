@@ -1,5 +1,27 @@
 # Rollback - Volver a Versión Anterior
 
+> Los releases actuales se identifican mediante el tag inmutable
+> `<sha-completo>-<run-id>`. Un rollback solo cambia la imagen del servicio y no
+> ejecuta migraciones ni reconstruye imágenes. Si una versión incluye un cambio de
+> esquema no retrocompatible, restaura primero una copia de seguridad compatible.
+
+## Rollback actual (GitHub Actions)
+
+En **Actions → Rollback - Manual → Run workflow**, selecciona el servicio y pega
+el tag inmutable publicado. `all` recupera los tres servicios a ese tag. El
+workflow descarga solo las imágenes indicadas, usa `up -d --no-deps` y verifica
+`/salud`; no ejecuta `down` y no toca `datos/`.
+
+Para recuperar solo API manualmente:
+
+```bash
+cd /opt/recetas
+export RECETAS_API_TAG=<sha>-<run-id>
+docker compose -f compose.prod.yaml pull recetas-api
+docker compose -f compose.prod.yaml up -d --no-deps recetas-api
+curl -f http://127.0.0.1:8080/salud
+```
+
 Si algo falla en producción, puedes volver a una versión anterior en segundos.
 
 ---

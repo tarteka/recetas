@@ -2,7 +2,8 @@ name: recetas-produccion
 
 services:
   recetas-api:
-    image: ghcr.io/tarteka/recetas/recetas-api:${RELEASE_TAG:?Configura RELEASE_TAG en .env antes de desplegar (ver docs/DEPLOYMENT.md)}
+    # RELEASE_TAG remains a migration fallback for existing VPS .env files.
+    image: ghcr.io/tarteka/recetas/recetas-api:${RECETAS_API_TAG:-${RELEASE_TAG:?Configura RECETAS_API_TAG o RELEASE_TAG en .env}}
     pull_policy: always
     environment:
       RECETAS_API_TOKEN: ${RECETAS_API_TOKEN:?Configura RECETAS_API_TOKEN en .env}
@@ -27,7 +28,7 @@ services:
       start_period: 15s
 
   recetas-web:
-    image: ghcr.io/tarteka/recetas/recetas-web:${RELEASE_TAG:?Configura RELEASE_TAG en .env antes de desplegar (ver docs/DEPLOYMENT.md)}
+    image: ghcr.io/tarteka/recetas/recetas-web:${RECETAS_WEB_TAG:-${RELEASE_TAG:?Configura RECETAS_WEB_TAG o RELEASE_TAG en .env}}
     pull_policy: always
     environment:
       RECETAS_DOMINIO: ${RECETAS_DOMINIO:-recetas.proyectozero.org}
@@ -57,7 +58,7 @@ services:
       start_period: 10s
 
   recetas-admin:
-    image: ghcr.io/tarteka/recetas/recetas-admin:${RELEASE_TAG:?Configura RELEASE_TAG en .env antes de desplegar (ver docs/DEPLOYMENT.md)}
+    image: ghcr.io/tarteka/recetas/recetas-admin:${RECETAS_ADMIN_TAG:-${RELEASE_TAG:?Configura RECETAS_ADMIN_TAG o RELEASE_TAG en .env}}
     pull_policy: always
     networks:
       - recetas-interna

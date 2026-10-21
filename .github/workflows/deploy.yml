@@ -6,14 +6,39 @@ on:
     types: [completed]
     branches: [main]
 
+concurrency:
+  group: recetas-production
+  cancel-in-progress: false
+
 jobs:
   deploy:
     name: Desplegar a VPS
     runs-on: ubuntu-latest
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    permissions:
+      actions: read
+      contents: read
 
     steps:
       - uses: actions/checkout@v7
+
+      - name: Descargar manifiesto de la publicación
+        uses: actions/download-artifact@v6
+        with:
+          name: recetas-release-${{ github.event.workflow_run.id }}
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Leer manifiesto
+        id: release
+        run: |
+          set -a
+          . ./release.env
+          set +a
+          case "$service" in recetas-api|recetas-web|recetas-admin|all) ;; *) exit 1 ;; esac
+          echo "source_sha=$source_sha" >> "$GITHUB_OUTPUT"
+          echo "release_id=$release_id" >> "$GITHUB_OUTPUT"
+          echo "service=$service" >> "$GITHUB_OUTPUT"
 
       - name: Desplegar a VPS
         uses: appleboy/ssh-action@v1.2.5
@@ -28,28 +53,51 @@ jobs:
             cd /opt/recetas
 
             echo "🚀 Iniciando despliegue..."
-            echo "Commit SHA: ${{ github.event.workflow_run.head_sha }}"
+            echo "Release: ${{ steps.release.outputs.release_id }}"
             echo ""
 
             # 1. Sincronizar compose.prod.yaml y demás config con el commit publicado
             echo "🔄 Sincronizando configuración..."
             git fetch --quiet origin
-            git checkout --quiet ${{ github.event.workflow_run.head_sha }} || {
+            CURRENT_SHA="$(git rev-parse HEAD)"
+            SOURCE_SHA="${{ steps.release.outputs.source_sha }}"
+            # Queued workflow_run events can arrive out of order. Never let an
+            # older automatic release replace a newer checked-out production release.
+            if [ "$CURRENT_SHA" != "$SOURCE_SHA" ] && git merge-base --is-ancestor "$SOURCE_SHA" "$CURRENT_SHA"; then
+              echo "❌ Release obsoleta: $SOURCE_SHA es anterior a $CURRENT_SHA"
+              exit 1
+            fi
+            git checkout --quiet ${{ steps.release.outputs.source_sha }} || {
               echo "❌ Error al sincronizar el checkout"
               exit 1
             }
 
-            # 2. Descargar imágenes
+            # 2. Apply only the published component tag; existing components keep theirs.
             echo "📥 Descargando imágenes de GHCR..."
-            export RELEASE_TAG=${{ github.event.workflow_run.head_sha }}
-            docker compose -f compose.prod.yaml pull || {
+            SERVICE=${{ steps.release.outputs.service }}
+            RELEASE_ID=${{ steps.release.outputs.release_id }}
+            TARGETS="$SERVICE"
+            [ "$SERVICE" = all ] && TARGETS="recetas-api recetas-web recetas-admin"
+            case "$SERVICE" in
+              recetas-api) export RECETAS_API_TAG="$RELEASE_ID" ;;
+              recetas-web) export RECETAS_WEB_TAG="$RELEASE_ID" ;;
+              recetas-admin) export RECETAS_ADMIN_TAG="$RELEASE_ID" ;;
+              all)
+                export RECETAS_API_TAG="$RELEASE_ID"
+                export RECETAS_WEB_TAG="$RELEASE_ID"
+                export RECETAS_ADMIN_TAG="$RELEASE_ID"
+                ;;
+            esac
+            export RECETAS_API_TAG RECETAS_WEB_TAG RECETAS_ADMIN_TAG
+            docker compose -f compose.prod.yaml pull $TARGETS || {
               echo "❌ Error al descargar imágenes"
               exit 1
             }
 
             # 3. Levantar servicios
             echo "🆙 Levantando servicios..."
-            docker compose -f compose.prod.yaml up -d || {
+            # --no-deps prevents an API-only update from restarting Caddy.
+            docker compose -f compose.prod.yaml up -d --no-deps $TARGETS || {
               echo "❌ Error al iniciar servicios"
               exit 1
             }
@@ -69,6 +117,23 @@ jobs:
               exit 1
             fi
 
+            for target in $TARGETS; do
+              container="$(docker compose -f compose.prod.yaml ps -q "$target")"
+              health="$(docker inspect --format '{{.State.Health.Status}}' "$container" 2>/dev/null || true)"
+              if [ -z "$container" ] || [ "$health" != healthy ]; then
+                echo "❌ El contenedor $target no está saludable"
+                exit 1
+              fi
+            done
+
+            # Persist independent tags for later restarts and selective operations.
+            for variable in RECETAS_API_TAG RECETAS_WEB_TAG RECETAS_ADMIN_TAG; do
+              value="$(printenv "$variable" || true)"
+              [ -n "$value" ] || continue
+              sed -i "/^${variable}=/d" .env
+              printf '%s=%s\n' "$variable" "$value" >> .env
+            done
+
             # 6. Verificar datos persistentes
             echo "💾 Verificando datos persistentes..."
             if [ -f "datos/recetas.sqlite" ]; then
@@ -84,7 +149,7 @@ jobs:
 
             echo ""
             echo "✅ Despliegue completado exitosamente"
-            echo "Release: $RELEASE_TAG"
+            echo "Release: $RELEASE_ID ($SERVICE)"
             echo ""
             echo "URLs:"
             echo "  - https://recetas.proyectozero.org (web)"
@@ -106,4 +171,4 @@ jobs:
 
             echo ""
             echo "⚠️  Para rollback manual:"
-            echo "   RELEASE_TAG=<commit_sha_anterior> docker compose -f compose.prod.yaml up -d"
+            echo "   RECETAS_API_TAG=<sha-run_id> docker compose -f compose.prod.yaml up -d --no-deps recetas-api"

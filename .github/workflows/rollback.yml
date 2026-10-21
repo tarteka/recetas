@@ -3,10 +3,20 @@ name: Rollback - Manual
 on:
   workflow_dispatch:
     inputs:
-      commit_sha:
-        description: 'Commit SHA para hacer rollback'
+      service:
+        description: Servicio a recuperar
+        required: true
+        default: recetas-api
+        type: choice
+        options: [recetas-api, recetas-web, recetas-admin, all]
+      image_tag:
+        description: Tag inmutable publicado (SHA-run_id)
         required: true
         type: string
+
+concurrency:
+  group: recetas-production
+  cancel-in-progress: false
 
 jobs:
   rollback:
@@ -16,54 +26,60 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - name: Validar SHA
+      - name: Validar entrada
         run: |
-          if [ ${#COMMIT_SHA} -ne 40 ]; then
-            echo "❌ Commit SHA inválido: ${{ inputs.commit_sha }}"
+          if ! [[ "$IMAGE_TAG" =~ ^[0-9a-f]{40}-[0-9]+$ ]]; then
+            echo "❌ Tag inmutable inválido"
             exit 1
           fi
-          echo "✅ SHA válido: ${{ inputs.commit_sha }}"
+          echo "✅ Tag válido para $SERVICE"
         env:
-          COMMIT_SHA: ${{ inputs.commit_sha }}
+          IMAGE_TAG: ${{ inputs.image_tag }}
+          SERVICE: ${{ inputs.service }}
 
       - name: Ejecutar rollback en VPS
         uses: appleboy/ssh-action@v1.2.5
+        env:
+          SERVICE: ${{ inputs.service }}
+          IMAGE_TAG: ${{ inputs.image_tag }}
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
           port: 22
+          envs: SERVICE,IMAGE_TAG
           script: |
             set -e
 
             cd /opt/recetas
 
-            ROLLBACK_SHA=${{ inputs.commit_sha }}
-
             echo "⏮️  Iniciando rollback..."
-            echo "Versión anterior: $ROLLBACK_SHA"
+            echo "Versión anterior: $IMAGE_TAG ($SERVICE)"
             echo ""
 
-            # 1. Sincronizar compose.prod.yaml y demás config con el SHA de rollback
-            echo "🔄 Sincronizando configuración..."
-            git fetch --quiet origin
-            git checkout --quiet "$ROLLBACK_SHA" || {
-              echo "❌ Error: no se pudo sincronizar el checkout a $ROLLBACK_SHA"
-              exit 1
-            }
-
-            # 2. Descargar imágenes de versión anterior
+            # The compose file is already present; rollback never rebuilds or changes data.
             echo "📥 Descargando imágenes de GHCR..."
-            export RELEASE_TAG=$ROLLBACK_SHA
-            docker compose -f compose.prod.yaml pull || {
-              echo "❌ Error: No se pueden descargar imágenes del SHA $ROLLBACK_SHA"
+            TARGETS="$SERVICE"
+            [ "$SERVICE" = all ] && TARGETS="recetas-api recetas-web recetas-admin"
+            case "$SERVICE" in
+              recetas-api) export RECETAS_API_TAG="$IMAGE_TAG" ;;
+              recetas-web) export RECETAS_WEB_TAG="$IMAGE_TAG" ;;
+              recetas-admin) export RECETAS_ADMIN_TAG="$IMAGE_TAG" ;;
+              all)
+                export RECETAS_API_TAG="$IMAGE_TAG"
+                export RECETAS_WEB_TAG="$IMAGE_TAG"
+                export RECETAS_ADMIN_TAG="$IMAGE_TAG"
+                ;;
+            esac
+            docker compose -f compose.prod.yaml pull $TARGETS || {
+              echo "❌ Error: no se puede descargar la imagen solicitada"
               echo "Verifica que existan en GHCR"
               exit 1
             }
 
-            # 3. Recrear solo los contenedores cuya imagen cambió (sin downtime completo)
+            # --no-deps keeps unrelated services, Caddy and persistent volumes running.
             echo "🆙 Actualizando servicios..."
-            docker compose -f compose.prod.yaml up -d || {
+            docker compose -f compose.prod.yaml up -d --no-deps $TARGETS || {
               echo "❌ Error al iniciar servicios"
               exit 1
             }
@@ -82,9 +98,25 @@ jobs:
               exit 1
             fi
 
+            for target in $TARGETS; do
+              container="$(docker compose -f compose.prod.yaml ps -q "$target")"
+              health="$(docker inspect --format '{{.State.Health.Status}}' "$container" 2>/dev/null || true)"
+              if [ -z "$container" ] || [ "$health" != healthy ]; then
+                echo "❌ El contenedor $target no está saludable"
+                exit 1
+              fi
+            done
+
+            for variable in RECETAS_API_TAG RECETAS_WEB_TAG RECETAS_ADMIN_TAG; do
+              value="$(printenv "$variable" || true)"
+              [ -n "$value" ] || continue
+              sed -i "/^${variable}=/d" .env
+              printf '%s=%s\n' "$variable" "$value" >> .env
+            done
+
             echo ""
             echo "✅ Rollback completado"
-            echo "Versión activa: $ROLLBACK_SHA"
+            echo "Versión activa: $IMAGE_TAG ($SERVICE)"
 
       - name: Falló el rollback ❌
         if: failure()
