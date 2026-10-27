@@ -1,11 +1,13 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
 import Footer from './components/Footer';
+import ScrollToTop from './components/ScrollToTop';
 import PaginaAcercaDe from './pages/PaginaAcercaDe';
 import PaginaDetalle from './pages/PaginaDetalle';
 import PaginaListado from './pages/PaginaListado';
 
 export default function App() {
   return <div className="aplicacion">
+    <ScrollToTop />
     <Routes>
       <Route path="/" element={<PaginaListado />} />
       <Route path="/recetas/:slug" element={<PaginaDetalle />} />
