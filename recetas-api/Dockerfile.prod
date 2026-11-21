@@ -1,4 +1,4 @@
-FROM php:8.4-apache
+FROM php:8.4.28-apache
 
 LABEL org.opencontainers.image.source="https://github.com/tarteka/recetas"
 LABEL org.opencontainers.image.title="recetas-api"
