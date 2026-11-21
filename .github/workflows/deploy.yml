@@ -38,7 +38,7 @@ jobs:
     steps:
       - name: Descargar manifiesto automático
         if: github.event_name == 'workflow_run'
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v7
         with:
           name: recetas-release-${{ github.event.workflow_run.id }}
           run-id: ${{ github.event.workflow_run.id }}
